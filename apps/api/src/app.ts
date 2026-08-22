@@ -5,6 +5,9 @@ import helmet from "helmet";
 import merchantRoutes from "./routes/merchant.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import catalogRoutes from "./routes/catalog.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import orderRoutes from "./routes/order.routes.js";
+import agentActionRoutes from "./routes/agent-action.routes.js";
 
 const app = express();
 
@@ -33,5 +36,11 @@ app.get("/health", (_req, res) => {
 app.use("/api/merchants", merchantRoutes);
 app.use("/api/merchants", productRoutes);
 app.use("/api/catalog", catalogRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/orders", orderRoutes);
+app.use(
+  "/api/agent-actions",
+  agentActionRoutes
+);
 
 export default app;
