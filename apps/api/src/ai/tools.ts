@@ -1,7 +1,7 @@
 import {
-  SchemaType,
+  Type,
   type Tool,
-} from "@google/generative-ai";
+} from "@google/genai";
 
 
 export const geminiTools: Tool[] = [
@@ -14,11 +14,12 @@ export const geminiTools: Tool[] = [
           "Search products from merchant catalog based on customer requirements",
 
         parameters: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
 
           properties: {
             query: {
-              type: SchemaType.STRING,
+              type: Type.STRING,
+
               description:
                 "Product search query",
             },

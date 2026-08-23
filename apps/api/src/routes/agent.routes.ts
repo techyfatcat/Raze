@@ -23,12 +23,20 @@ router.post(
 
     } catch(error){
 
-      res.status(500).json({
-        success:false,
-        message:"Agent failed",
-      });
+  console.error(
+    "AGENT ERROR:",
+    error
+  );
 
-    }
+  res.status(500).json({
+    success:false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Agent failed",
+  });
+
+}
 
   }
 );

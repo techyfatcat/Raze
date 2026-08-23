@@ -1,6 +1,6 @@
 import {
-  GoogleGenerativeAI,
-} from "@google/generative-ai";
+  GoogleGenAI,
+} from "@google/genai";
 
 import type {
   AIProvider,
@@ -16,9 +16,21 @@ import {
 
 
 const client =
-  new GoogleGenerativeAI(
-    process.env.GEMINI_API_KEY!
-  );
+  new GoogleGenAI({
+    apiKey:
+      process.env.GEMINI_API_KEY!,
+  });
+
+  function cleanResponse(
+  text:string
+){
+
+  return text
+    .replace(/[#*_]/g,"")
+    .replace(/\n+/g," ")
+    .trim();
+
+}
 
 
 export class GeminiProvider
@@ -41,27 +53,26 @@ implements AIProvider {
   }) {
 
 
-    const model =
-      client.getGenerativeModel({
-
-        model: "gemini-2.0-flash",
-
-        systemInstruction: system,
-
-        tools: geminiTools,
-
-      });
-
-
-
     const chat =
-      model.startChat({
+      client.chats.create({
+
+        model:
+  "gemini-3.6-flash",
+        config: {
+
+          systemInstruction:
+            system,
+
+          tools:
+            geminiTools,
+
+        },
 
         history:
           messages
             .slice(0, -1)
             .map((message) => ({
-              
+
               role:
                 message.role === "assistant"
                   ? "model"
@@ -69,7 +80,8 @@ implements AIProvider {
 
               parts: [
                 {
-                  text: message.content,
+                  text:
+                    message.content,
                 },
               ],
 
@@ -84,23 +96,30 @@ implements AIProvider {
 
 
 
-    const result =
-      await chat.sendMessage(
-        last.content
-      );
+    let response =
+      await chat.sendMessage({
 
+        message:
+          last.content,
 
-    const response =
-      result.response;
+      });
 
 
 
     const functionCall =
-      response.functionCalls()?.[0];
+      response.functionCalls?.[0];
 
 
 
     if (functionCall) {
+
+
+      console.log(
+        "AI TOOL CALL:",
+        functionCall.name,
+        functionCall.args
+      );
+
 
 
       if (
@@ -109,43 +128,65 @@ implements AIProvider {
       ) {
 
 
+        const args =
+          functionCall.args as {
+            query: string;
+          };
+
+
+
         const products =
           await searchProductsTool({
 
             merchantId,
 
             query:
-                  String(
-                      (
-                          functionCall.args as {
-                              query: string;
-                          }
-                      ).query
-                  ),
+              args.query,
 
           });
 
 
 
-        const toolResult =
-          await chat.sendMessage([
-            {
-              functionResponse: {
+        response =
+          await chat.sendMessage({
 
-                name:
-                  "searchProducts",
+            message: [
 
-                response: {
-                  products,
+              {
+                functionResponse: {
+
+                  name:
+                    "searchProducts",
+
+                  response: {
+
+                    products,
+
+                  },
+
                 },
 
               },
-            },
-          ]);
+
+            ],
+
+          });
 
 
 
-        return toolResult.response.text();
+        return JSON.stringify({
+
+  message:
+    cleanResponse(
+      response.text ?? ""
+    ),
+
+  products,
+
+  action:
+    "SHOW_PRODUCTS",
+
+});
 
       }
 
@@ -153,7 +194,17 @@ implements AIProvider {
 
 
 
-    return response.text();
+    return JSON.stringify({
+
+  message:
+    cleanResponse(
+      response.text ?? ""
+    ),
+
+  action:
+    "NONE",
+
+});
 
   }
 
