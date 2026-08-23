@@ -8,6 +8,7 @@ import catalogRoutes from "./routes/catalog.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import agentActionRoutes from "./routes/agent-action.routes.js";
+import agentRoutes from "./routes/agent.routes.js";
 
 const app = express();
 
@@ -41,6 +42,10 @@ app.use("/api/orders", orderRoutes);
 app.use(
   "/api/agent-actions",
   agentActionRoutes
+);
+app.use(
+ "/api/agent",
+ agentRoutes
 );
 
 export default app;
