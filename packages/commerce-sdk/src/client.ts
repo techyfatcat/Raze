@@ -3,7 +3,9 @@ import type {
   Product,
   RazeConfig,
   PaymentRequest,
+  PaymentResponse,
   RazeMessage,
+
 } from "./types";
 
 
@@ -314,6 +316,21 @@ export class RazeClient {
   }
 
 
+  async getProduct(
+  productId:string
+){
+
+  return this.request<{
+
+    success:boolean;
+
+    product:Product;
+
+  }>(
+    `/api/catalog/${this.merchantId}/product/${productId}`
+  );
+
+}
 
 
 
@@ -340,7 +357,25 @@ export class RazeClient {
 
   }
 
+async verifyPayment(data:{
+  orderId:string;
+  providerOrderId:string;
+  paymentId:string;
+  signature:string;
+}){
 
+ return this.request(
+   "/api/payments/verify",
+   {
+
+    method:"POST",
+
+    body:JSON.stringify(data),
+
+   }
+ );
+
+}
 
 
 
@@ -348,35 +383,33 @@ export class RazeClient {
 
 
   async createPayment(
-    orderId:string,
-    actionId:string
-  ){
+  orderId:string,
+  actionId:string
+):Promise<PaymentResponse>{
 
 
-    return this.request(
+    return this.request<PaymentResponse>(
 
-      "/api/payments/create",
+  "/api/payments/create",
 
-      {
+  {
 
+    method:"POST",
 
-        method:"POST",
+    body:JSON.stringify({
 
+      orderId,
 
-        body:JSON.stringify({
+      agentActionId:
+        actionId,
 
-          orderId,
+    }),
 
+  }
 
-          agentActionId:
-            actionId,
+  
 
-
-        }),
-
-      }
-
-    );
+);
 
 
   }

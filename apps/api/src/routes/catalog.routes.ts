@@ -61,4 +61,101 @@ router.get("/:merchantId/catalog", async (req, res) => {
   }
 });
 
+
+router.get(
+  "/:merchantId/product/:productId",
+  async (req, res) => {
+
+    try {
+
+      const {
+        merchantId,
+        productId,
+      } = req.params;
+
+
+
+      const product =
+        await prisma.product.findFirst({
+
+          where: {
+
+            id: productId,
+
+            merchantId,
+
+            isActive: true,
+
+          },
+
+          select: {
+
+            id: true,
+
+            name: true,
+
+            description: true,
+
+            price: true,
+
+            category: true,
+
+            inventory: true,
+
+            attributes: true,
+
+          },
+
+        });
+
+
+
+      if (!product) {
+
+        return res.status(404).json({
+
+          success:false,
+
+          message:
+            "Product not found",
+
+        });
+
+      }
+
+
+
+      return res.json({
+
+        success:true,
+
+        product,
+
+      });
+
+
+    }
+
+    catch(error){
+
+      console.error(
+        "Product fetch error:",
+        error
+      );
+
+
+      return res.status(500).json({
+
+        success:false,
+
+        message:
+          "Failed to fetch product",
+
+      });
+
+    }
+
+  }
+);
+
 export default router;

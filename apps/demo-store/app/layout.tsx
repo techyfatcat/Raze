@@ -1,9 +1,7 @@
 import {
   RazeProvider,
-} from "@raze/commerce-sdk/react";
-
-import {
   RazeAssistant,
+  RazeCartProvider,
 } from "@raze/commerce-sdk/react";
 
 
@@ -35,6 +33,8 @@ export default function RootLayout({
 
       <body>
 
+        <script src="https://checkout.razorpay.com/v1/checkout.js" />
+
 
         <RazeProvider
 
@@ -48,10 +48,17 @@ export default function RootLayout({
 
         >
 
-          {children}
+
+          <RazeCartProvider>
 
 
-          <RazeAssistant/>
+            {children}
+
+
+            <RazeAssistant/>
+
+
+          </RazeCartProvider>
 
 
         </RazeProvider>

@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -12,11 +13,7 @@ import type {
 } from "../types";
 
 
-/* -------------------------------------------------------------------------- */
-/* Context type                                                               */
-/* -------------------------------------------------------------------------- */
-
-type RazeCartContextType = {
+export type RazeCartContextType = {
 
   items: CartItem[];
 
@@ -28,24 +25,27 @@ type RazeCartContextType = {
     productId: string
   ) => void;
 
+  updateQuantity: (
+    productId: string,
+    quantity: number
+  ) => void;
+
   clearCart: () => void;
+
+  getItemQuantity: (
+    productId: string
+  ) => number;
+
+  itemCount: number;
 
 };
 
-
-/* -------------------------------------------------------------------------- */
-/* Context                                                                    */
-/* -------------------------------------------------------------------------- */
 
 const RazeCartContext =
   createContext<RazeCartContextType | null>(
     null
   );
 
-
-/* -------------------------------------------------------------------------- */
-/* Provider                                                                   */
-/* -------------------------------------------------------------------------- */
 
 export function RazeCartProvider({
   children,
@@ -59,9 +59,9 @@ export function RazeCartProvider({
   ] = useState<CartItem[]>([]);
 
 
-  /* ---------------------------------------------------------------------- */
-  /* Add item                                                               */
-  /* ---------------------------------------------------------------------- */
+  /* -------------------------------------------------- */
+  /* Add item                                           */
+  /* -------------------------------------------------- */
 
   function addItem(
     item: CartItem
@@ -88,20 +88,27 @@ export function RazeCartProvider({
       if (existing) {
 
         return prev.map(
-          cartItem =>
+          cartItem => {
 
-            cartItem.productId ===
-            item.productId
+            if (
+              cartItem.productId !==
+              item.productId
+            ) {
+              return cartItem;
+            }
 
-              ? {
-                  ...cartItem,
 
-                  quantity:
-                    cartItem.quantity +
-                    item.quantity,
-                }
+            return {
 
-              : cartItem
+              ...cartItem,
+
+              quantity:
+                cartItem.quantity +
+                item.quantity,
+
+            };
+
+          }
         );
 
       }
@@ -109,7 +116,13 @@ export function RazeCartProvider({
 
       return [
         ...prev,
-        item,
+        {
+          productId:
+            item.productId,
+
+          quantity:
+            item.quantity,
+        },
       ];
 
     });
@@ -117,9 +130,9 @@ export function RazeCartProvider({
   }
 
 
-  /* ---------------------------------------------------------------------- */
-  /* Remove item                                                            */
-  /* ---------------------------------------------------------------------- */
+  /* -------------------------------------------------- */
+  /* Remove item                                        */
+  /* -------------------------------------------------- */
 
   function removeItem(
     productId: string
@@ -136,9 +149,47 @@ export function RazeCartProvider({
   }
 
 
-  /* ---------------------------------------------------------------------- */
-  /* Clear cart                                                             */
-  /* ---------------------------------------------------------------------- */
+  /* -------------------------------------------------- */
+  /* Update quantity                                    */
+  /* -------------------------------------------------- */
+
+  function updateQuantity(
+    productId: string,
+    quantity: number
+  ) {
+
+    if (quantity <= 0) {
+
+      removeItem(
+        productId
+      );
+
+      return;
+
+    }
+
+
+    setItems(prev =>
+      prev.map(item =>
+
+        item.productId === productId
+
+          ? {
+              ...item,
+              quantity,
+            }
+
+          : item
+
+      )
+    );
+
+  }
+
+
+  /* -------------------------------------------------- */
+  /* Clear cart                                         */
+  /* -------------------------------------------------- */
 
   function clearCart() {
 
@@ -147,22 +198,78 @@ export function RazeCartProvider({
   }
 
 
-  /* ---------------------------------------------------------------------- */
-  /* Provider                                                               */
-  /* ---------------------------------------------------------------------- */
+  /* -------------------------------------------------- */
+  /* Get quantity                                       */
+  /* -------------------------------------------------- */
 
-  return (
+  function getItemQuantity(
+    productId: string
+  ) {
 
-    <RazeCartContext.Provider
-      value={{
+    return (
+      items.find(
+        item =>
+          item.productId ===
+          productId
+      )?.quantity ?? 0
+    );
+
+  }
+
+
+  /* -------------------------------------------------- */
+  /* Total item count                                   */
+  /* -------------------------------------------------- */
+
+  const itemCount =
+    useMemo(() => {
+
+      return items.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          item.quantity,
+
+        0
+      );
+
+    }, [
+      items,
+    ]);
+
+
+  const value =
+    useMemo(
+      () => ({
+
         items,
 
         addItem,
 
         removeItem,
 
+        updateQuantity,
+
         clearCart,
-      }}
+
+        getItemQuantity,
+
+        itemCount,
+
+      }),
+      [
+        items,
+        itemCount,
+      ]
+    );
+
+
+  return (
+
+    <RazeCartContext.Provider
+      value={value}
     >
 
       {children}
@@ -174,9 +281,9 @@ export function RazeCartProvider({
 }
 
 
-/* -------------------------------------------------------------------------- */
-/* Hook                                                                       */
-/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------- */
+/* Hook                                               */
+/* -------------------------------------------------- */
 
 export function useRazeCart() {
 

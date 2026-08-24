@@ -5,9 +5,15 @@ import {
   useState,
 } from "react";
 
+
 import type {
   Product,
 } from "@raze/commerce-sdk";
+
+
+import {
+  useRazeCart,
+} from "@raze/commerce-sdk/react";
 
 
 import {
@@ -16,29 +22,36 @@ import {
 
 
 import ProductCard from "@/components/ProductCard";
+import CartDrawer from "@/components/CartDrawer";
 
 
 
 export default function Home() {
 
 
-  const [products,setProducts] =
+  const [products, setProducts] =
     useState<Product[]>([]);
 
 
-  const [loading,setLoading] =
+  const [loading, setLoading] =
     useState(true);
 
 
 
-
-  useEffect(()=>{
-
-
-    async function loadProducts(){
+  const {
+    items,
+  } = useRazeCart();
 
 
-      try{
+
+
+  useEffect(() => {
+
+
+    async function loadProducts() {
+
+
+      try {
 
 
         const response =
@@ -52,7 +65,7 @@ export default function Home() {
 
 
       }
-      catch(error){
+      catch (error) {
 
 
         console.error(
@@ -62,7 +75,7 @@ export default function Home() {
 
 
       }
-      finally{
+      finally {
 
 
         setLoading(false);
@@ -78,7 +91,8 @@ export default function Home() {
     loadProducts();
 
 
-  },[]);
+  }, []);
+
 
 
 
@@ -127,6 +141,7 @@ export default function Home() {
         >
 
 
+
           <h1
 
             className="
@@ -144,18 +159,12 @@ export default function Home() {
 
 
 
-          <p
 
-            className="
-              text-sm
-              text-neutral-500
-            "
 
-          >
+          {/* Cart */}
 
-            AI Commerce Demo
 
-          </p>
+         <CartDrawer />
 
 
 
@@ -206,6 +215,8 @@ export default function Home() {
 
 
 
+
+
         {
           loading ?
 
@@ -233,7 +244,6 @@ export default function Home() {
 
           (
 
-
             <div
 
               className="
@@ -247,9 +257,9 @@ export default function Home() {
             >
 
 
-
               {
                 products.map(
+
                   product => (
 
                     <ProductCard
@@ -265,18 +275,17 @@ export default function Home() {
                     />
 
                   )
+
                 )
               }
 
 
-
             </div>
-
 
           )
 
-
         }
+
 
 
 

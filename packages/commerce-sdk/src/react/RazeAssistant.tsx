@@ -1,597 +1,619 @@
 "use client";
 
 import {
-  useEffect,
-  useRef,
-  useState,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 
 import {
-  useRaze,
+    useRaze,
 } from "./RazeProvider";
 
+import {
+    useRazeCart,
+} from "./RazeCartProvider";
+
 import type {
-  Product,
-  RazeMessage,
+    Product,
+    RazeMessage,
 } from "../types";
 
 function RazeIcon({
-  size = 18,
+    size = 18,
 }: {
-  size?: number;
+    size?: number;
 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 2.5L14.15 9.85L21.5 12L14.15 14.15L12 21.5L9.85 14.15L2.5 12L9.85 9.85L12 2.5Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+        >
+            <path
+                d="M12 2.5L14.15 9.85L21.5 12L14.15 14.15L12 21.5L9.85 14.15L2.5 12L9.85 9.85L12 2.5Z"
+                fill="currentColor"
+            />
+        </svg>
+    );
 }
 
 
 function UserIcon({
-  size = 17,
+    size = 17,
 }: {
-  size?: number;
+    size?: number;
 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+        >
+            <circle
+                cx="12"
+                cy="8"
+                r="3.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+            />
 
-      <path
-        d="M5.5 20C6.15 15.9 8.35 13.7 12 13.7C15.65 13.7 17.85 15.9 18.5 20"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+            <path
+                d="M5.5 20C6.15 15.9 8.35 13.7 12 13.7C15.65 13.7 17.85 15.9 18.5 20"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+            />
+        </svg>
+    );
 }
 
 
 function SendIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M21 3L10.7 13.3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    return (
+        <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+        >
+            <path
+                d="M21 3L10.7 13.3"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
 
-      <path
-        d="M21 3L14.4 21L10.7 13.3L3 9.6L21 3Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+            <path
+                d="M21 3L14.4 21L10.7 13.3L3 9.6L21 3Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
 }
 
 
 function CloseIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M6 6L18 18"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+    return (
+        <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+        >
+            <path
+                d="M6 6L18 18"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+            />
 
-      <path
-        d="M18 6L6 18"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+            <path
+                d="M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+            />
+        </svg>
+    );
 }
 
 
 export function RazeAssistant() {
 
-  const {
-    client,
-    onAddToCart,
-  } = useRaze();
+    const {
+        client,
+        onAddToCart,
+    } = useRaze();
+
+    const {
+        addItem,
+    } = useRazeCart();
 
 
-  const [open, setOpen] =
-    useState(false);
+    const [open, setOpen] =
+        useState(false);
 
 
-  const [input, setInput] =
-    useState("");
+    const [input, setInput] =
+        useState("");
 
 
-  const [loading, setLoading] =
-    useState(false);
+    const [loading, setLoading] =
+        useState(false);
+
+    const [addedProducts, setAddedProducts] =
+        useState<Set<string>>(new Set());
 
 
-  const [messages, setMessages] =
-    useState<RazeMessage[]>([
-      {
-        role: "assistant",
-        content:
-          "Hi 👋 How can I help you today?",
-        action: "NONE",
-      },
+    const [messages, setMessages] =
+        useState<RazeMessage[]>([
+            {
+                role: "assistant",
+                content:
+                    "Hi 👋 How can I help you today?",
+                action: "NONE",
+            },
+        ]);
+
+
+    const messagesEndRef =
+        useRef<HTMLDivElement | null>(null);
+
+
+    const inputRef =
+        useRef<HTMLTextAreaElement | null>(null);
+
+    useEffect(() => {
+
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+        });
+
+    }, [
+        messages,
+        loading,
     ]);
 
 
-  const messagesEndRef =
-    useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
 
+        if (!open) {
+            return;
+        }
 
-  const inputRef =
-    useRef<HTMLTextAreaElement | null>(null);
+        const timer =
+            window.setTimeout(() => {
+                inputRef.current?.focus();
+            }, 150);
 
-  useEffect(() => {
+        return () =>
+            window.clearTimeout(timer);
 
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-
-  }, [
-    messages,
-    loading,
-  ]);
-
-
-  useEffect(() => {
-
-    if (!open) {
-      return;
-    }
-
-    const timer =
-      window.setTimeout(() => {
-        inputRef.current?.focus();
-      }, 150);
-
-    return () =>
-      window.clearTimeout(timer);
-
-  }, [
-    open,
-  ]);
-
-  async function send() {
-
-    const text =
-      input.trim();
-
-
-    if (
-      !text ||
-      loading
-    ) {
-      return;
-    }
-
-
-    const userMessage: RazeMessage = {
-      role: "user",
-      content: text,
-    };
-
-
-    setMessages(prev => [
-      ...prev,
-      userMessage,
+    }, [
+        open,
     ]);
 
+    async function send() {
 
-    setInput("");
-
-    setLoading(true);
-
-
-    try {
-
-      const response =
-        await client.chat(
-          text,
-          messages
-        );
+        const text =
+            input.trim();
 
 
-      const assistantMessage: RazeMessage = {
-
-        role: "assistant",
-
-        content:
-          response.message,
-
-        products:
-          response.products ?? [],
-
-        action:
-          response.action ?? "NONE",
-
-      };
+        if (
+            !text ||
+            loading
+        ) {
+            return;
+        }
 
 
-      setMessages(prev => [
-        ...prev,
-        assistantMessage,
-      ]);
+        const userMessage: RazeMessage = {
+            role: "user",
+            content: text,
+        };
+
+
+        setMessages(prev => [
+            ...prev,
+            userMessage,
+        ]);
+
+
+        setInput("");
+
+        setLoading(true);
+
+
+        try {
+
+            const response =
+                await client.chat(
+                    text,
+                    messages
+                );
+
+
+            const assistantMessage: RazeMessage = {
+
+                role: "assistant",
+
+                content:
+                    response.message,
+
+                products:
+                    response.products ?? [],
+
+                action:
+                    response.action ?? "NONE",
+
+            };
+
+
+            setMessages(prev => [
+                ...prev,
+                assistantMessage,
+            ]);
+
+        }
+        catch (error) {
+
+            console.error(
+                "Raze AI Error:",
+                error
+            );
+
+
+            setMessages(prev => [
+                ...prev,
+                {
+                    role: "assistant",
+                    content:
+                        "Sorry, something went wrong. Please try again.",
+                    action: "NONE",
+                },
+            ]);
+
+        }
+        finally {
+
+            setLoading(false);
+
+        }
 
     }
-    catch (error) {
-
-      console.error(
-        "Raze AI Error:",
-        error
-      );
 
 
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Sorry, something went wrong. Please try again.",
-          action: "NONE",
-        },
-      ]);
-
-    }
-    finally {
-
-      setLoading(false);
-
-    }
-
-  }
-
-
-  function handleKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>
-  ) {
-
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey
+    function handleKeyDown(
+        event: React.KeyboardEvent<HTMLTextAreaElement>
     ) {
 
-      event.preventDefault();
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
 
-      send();
+            event.preventDefault();
+
+            send();
+
+        }
 
     }
 
-  }
+    return (
+        <>
 
-  return (
-    <>
+            <div className="rz-root">
 
-      <div className="rz-root">
+                {!open && (
 
-        {!open && (
-
-          <button
-            type="button"
-            aria-label="Open Raze AI"
-            className="rz-launcher"
-            onClick={() =>
-              setOpen(true)
-            }
-          >
-
-            <RazeIcon
-              size={22}
-            />
-
-          </button>
-
-        )}
-
-        {open && (
-
-          <div className="rz-window">
-
-
-            <div className="rz-header">
-
-             
-
-
-              <div className="rz-header-info">
-
-                <div className="rz-title">
-                  Raze
-                </div>
-
-                <div className="rz-subtitle">
-                  AI Shopping Assistant
-                </div>
-
-              </div>
-
-
-              <button
-                type="button"
-                aria-label="Close Raze"
-                className="rz-close"
-                onClick={() =>
-                  setOpen(false)
-                }
-              >
-
-                <CloseIcon />
-
-              </button>
-
-            </div>
-
-            <div className="rz-messages">
-
-              <div className="rz-message-list">
-
-                {messages.map(
-                  (
-                    message,
-                    index
-                  ) => {
-
-                    const isUser =
-                      message.role === "user";
-
-
-                    return (
-
-                      <div
-                        key={index}
-                        className={
-                          isUser
-                            ? "rz-message-row rz-user-row"
-                            : "rz-message-row"
+                    <button
+                        type="button"
+                        aria-label="Open Raze AI"
+                        className="rz-launcher"
+                        onClick={() =>
+                            setOpen(true)
                         }
-                      >
+                    >
+
+                        <RazeIcon
+                            size={22}
+                        />
+
+                    </button>
+
+                )}
+
+                {open && (
+
+                    <div className="rz-window">
 
 
-                        {!isUser && (
-
-                          <div className="rz-avatar rz-raze-avatar">
-
-                            <RazeIcon
-                              size={14}
-                            />
-
-                          </div>
-
-                        )}
+                        <div className="rz-header">
 
 
-                        <div className="rz-message-content">
 
 
-                          <div
-                            className={
-                              isUser
-                                ? "rz-bubble rz-user-bubble"
-                                : "rz-bubble rz-assistant-bubble"
-                            }
-                          >
+                            <div className="rz-header-info">
 
-                            {message.content}
+                                <div className="rz-title">
+                                    Raze
+                                </div>
 
-                          </div>
+                                <div className="rz-subtitle">
+                                    AI Shopping Assistant
+                                </div>
 
-
-                          {/* PRODUCT RESULTS */}
-
-                          {message.products &&
-                            message.products.length > 0 && (
-
-                              <div className="rz-products">
-
-                                {message.products.map(
-                                  (
-                                    product: Product
-                                  ) => (
-
-                                    <div
-                                      key={
-                                        product.id
-                                      }
-                                      className="rz-product"
-                                    >
-
-                                      <div className="rz-product-name">
-                                        {product.name}
-                                      </div>
+                            </div>
 
 
-                                      <div className="rz-product-price">
+                            <button
+                                type="button"
+                                aria-label="Close Raze"
+                                className="rz-close"
+                                onClick={() =>
+                                    setOpen(false)
+                                }
+                            >
 
-                                        {product.currency ?? "₹"}
-                                        {product.price}
+                                <CloseIcon />
 
-                                      </div>
+                            </button>
+
+                        </div>
+
+                        <div className="rz-messages">
+
+                            <div className="rz-message-list">
+
+                                {messages.map(
+                                    (
+                                        message,
+                                        index
+                                    ) => {
+
+                                        const isUser =
+                                            message.role === "user";
 
 
-                                      {onAddToCart && (
+                                        return (
 
-                                        <button
-                                          type="button"
-                                          className="rz-cart-button"
-                                          onClick={() =>
-                                            onAddToCart(
-                                              product
-                                            )
-                                          }
-                                        >
-                                          Add to cart
-                                        </button>
+                                            <div
+                                                key={index}
+                                                className={
+                                                    isUser
+                                                        ? "rz-message-row rz-user-row"
+                                                        : "rz-message-row"
+                                                }
+                                            >
 
-                                      )}
+
+                                                {!isUser && (
+
+                                                    <div className="rz-avatar rz-raze-avatar">
+
+                                                        <RazeIcon
+                                                            size={14}
+                                                        />
+
+                                                    </div>
+
+                                                )}
+
+
+                                                <div className="rz-message-content">
+
+
+                                                    <div
+                                                        className={
+                                                            isUser
+                                                                ? "rz-bubble rz-user-bubble"
+                                                                : "rz-bubble rz-assistant-bubble"
+                                                        }
+                                                    >
+
+                                                        {message.content}
+
+                                                    </div>
+
+
+                                                    {/* PRODUCT RESULTS */}
+
+                                                    {message.products &&
+                                                        message.products.length > 0 && (
+
+                                                            <div className="rz-products">
+
+                                                                {message.products.map(
+                                                                    (
+                                                                        product: Product
+                                                                    ) => (
+
+                                                                        <div
+                                                                            key={
+                                                                                product.id
+                                                                            }
+                                                                            className="rz-product"
+                                                                        >
+
+                                                                            <div className="rz-product-name">
+                                                                                {product.name}
+                                                                            </div>
+
+
+                                                                            <div className="rz-product-price">
+
+                                                                                {product.currency ?? "₹"}
+                                                                                {product.price}
+
+                                                                            </div>
+
+
+
+
+                                                                            <button
+                                                                                type="button"
+                                                                                className="rz-cart-button"
+                                                                                onClick={() => {
+                                                                                    addItem({
+                                                                                        productId: product.id,
+                                                                                        quantity: 1,
+                                                                                    });
+
+                                                                                    onAddToCart?.(product);
+
+                                                                                    setAddedProducts(prev => {
+                                                                                        const next = new Set(prev);
+                                                                                        next.add(product.id);
+                                                                                        return next;
+                                                                                    });
+                                                                                }}
+                                                                            >
+                                                                                {addedProducts.has(product.id)
+                                                                                    ? "Added ✓"
+                                                                                    : "Add to cart"}
+                                                                            </button>
+
+
+
+                                                                        </div>
+
+                                                                    )
+                                                                )}
+
+                                                            </div>
+
+                                                        )}
+
+                                                </div>
+
+
+                                                {isUser && (
+
+                                                    <div className="rz-avatar rz-user-avatar">
+
+                                                        <UserIcon />
+
+                                                    </div>
+
+                                                )}
+
+                                            </div>
+
+                                        );
+
+                                    }
+                                )}
+
+
+                                {/* TYPING */}
+
+                                {loading && (
+
+                                    <div className="rz-message-row">
+
+                                        <div className="rz-avatar rz-raze-avatar">
+
+                                            <RazeIcon
+                                                size={14}
+                                            />
+
+                                        </div>
+
+
+                                        <div className="rz-typing">
+
+                                            <span />
+                                            <span />
+                                            <span />
+
+                                        </div>
 
                                     </div>
 
-                                  )
                                 )}
 
-                              </div>
 
-                            )}
+                                <div
+                                    ref={messagesEndRef}
+                                />
+
+                            </div>
 
                         </div>
 
 
-                        {isUser && (
-
-                          <div className="rz-avatar rz-user-avatar">
-
-                            <UserIcon />
-
-                          </div>
-
-                        )}
-
-                      </div>
-
-                    );
-
-                  }
-                )}
-
-
-                {/* TYPING */}
-
-                {loading && (
-
-                  <div className="rz-message-row">
-
-                    <div className="rz-avatar rz-raze-avatar">
-
-                      <RazeIcon
-                        size={14}
-                      />
-
-                    </div>
-
-
-                    <div className="rz-typing">
-
-                      <span />
-                      <span />
-                      <span />
-
-                    </div>
-
-                  </div>
-
-                )}
-
-
-                <div
-                  ref={messagesEndRef}
-                />
-
-              </div>
-
-            </div>
-
-
-            {/* ---------------------------------------------
+                        {/* ---------------------------------------------
                 INPUT
             --------------------------------------------- */}
 
-            <div className="rz-input-area">
+                        <div className="rz-input-area">
 
-              <div className="rz-input-container">
+                            <div className="rz-input-container">
 
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  rows={2}
-                  disabled={loading}
-                  placeholder="Ask Raze anything..."
-                  className="rz-input"
-                  onChange={event =>
-                    setInput(
-                      event.target.value
-                    )
-                  }
-                  onKeyDown={
-                    handleKeyDown
-                  }
-                />
-
-
-                <button
-                  type="button"
-                  aria-label="Send message"
-                  disabled={
-                    loading ||
-                    !input.trim()
-                  }
-                  className="rz-send"
-                  onClick={send}
-                >
-
-                  <SendIcon />
-
-                </button>
-
-              </div>
+                                <textarea
+                                    ref={inputRef}
+                                    value={input}
+                                    rows={2}
+                                    disabled={loading}
+                                    placeholder="Ask Raze anything..."
+                                    className="rz-input"
+                                    onChange={event =>
+                                        setInput(
+                                            event.target.value
+                                        )
+                                    }
+                                    onKeyDown={
+                                        handleKeyDown
+                                    }
+                                />
 
 
-              <div className="rz-disclaimer">
+                                <button
+                                    type="button"
+                                    aria-label="Send message"
+                                    disabled={
+                                        loading ||
+                                        !input.trim()
+                                    }
+                                    className="rz-send"
+                                    onClick={send}
+                                >
 
-                Raze can make mistakes. Check important information.
+                                    <SendIcon />
 
-              </div>
+                                </button>
+
+                            </div>
+
+
+                            <div className="rz-disclaimer">
+
+                                Raze can make mistakes. Check important information.
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                )}
 
             </div>
 
-          </div>
-
-        )}
-
-      </div>
-
-      <style>
-        {`
+            <style>
+                {`
 
           /* ---------------------------------------------
              ROOT
@@ -1055,26 +1077,39 @@ export function RazeAssistant() {
 
 
           .rz-cart-button {
-            margin-top: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 
-            padding:
-              7px 13px !important;
+  width: 100% !important;
 
-            border: 0 !important;
-            border-radius: 999px !important;
+  margin-top: 11px !important;
+  padding: 9px 14px !important;
 
-            background:
-              #111 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
 
-            color:
-              white !important;
+  background: #111 !important;
+  color: white !important;
 
-            font-size: 11px !important;
-            font-weight: 500 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 
-            cursor: pointer !important;
-          }
+  cursor: pointer !important;
 
+  transition:
+    transform .18s ease,
+    background .18s ease !important;
+}
+
+.rz-cart-button:hover {
+  background: #2a2a2a !important;
+  transform: translateY(-1px) !important;
+}
+
+.rz-cart-button:active {
+  transform: scale(.98) !important;
+}
 
           /* ---------------------------------------------
              TYPING
@@ -1416,8 +1451,8 @@ export function RazeAssistant() {
           }
 
         `}
-      </style>
+            </style>
 
-    </>
-  );
+        </>
+    );
 }

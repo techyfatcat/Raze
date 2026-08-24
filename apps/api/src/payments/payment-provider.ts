@@ -6,9 +6,15 @@ export interface CreatePaymentOrderInput {
 }
 
 export interface PaymentOrder {
-  providerOrderId: string;
-  amount: number;
-  currency: string;
+
+  providerOrderId:string;
+
+  amount:number;
+
+  currency:string;
+
+  key?:string;
+
 }
 
 export interface VerifyPaymentInput {

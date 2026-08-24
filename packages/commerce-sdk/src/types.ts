@@ -114,3 +114,28 @@ export interface PaymentRequest {
   reason:string;
 
 }
+
+export type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+};
+
+export interface PaymentResponse {
+
+  success:boolean;
+
+  provider:string;
+
+  providerOrderId:string;
+
+  orderId:string;
+
+  amount:number;
+
+  currency:string;
+
+  key?:string | null;
+
+}
