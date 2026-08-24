@@ -5,7 +5,6 @@ import type {
   PaymentRequest,
   PaymentResponse,
   RazeMessage,
-
 } from "./types";
 
 
@@ -13,40 +12,33 @@ const DEFAULT_API_URL =
   "http://localhost:5000";
 
 
-
 export class RazeClient {
 
+  private readonly merchantId: string;
 
-  private readonly merchantId:string;
-
-  private readonly apiUrl:string;
-
+  private readonly apiUrl: string;
 
 
   constructor(
-    config:RazeConfig
-  ){
+    config: RazeConfig
+  ) {
 
     this.merchantId =
       config.merchantId;
 
 
     this.apiUrl =
-      config.apiUrl?.replace(/\/$/,"")
+      config.apiUrl?.replace(/\/$/, "")
       ??
       DEFAULT_API_URL;
 
   }
 
 
-
-
-
   private async request<T>(
-    path:string,
-    options?:RequestInit
-  ):Promise<T>{
-
+    path: string,
+    options?: RequestInit
+  ): Promise<T> {
 
     const response =
       await fetch(
@@ -55,7 +47,8 @@ export class RazeClient {
 
           ...options,
 
-          headers:{
+          headers: {
+
             "Content-Type":
               "application/json",
 
@@ -67,13 +60,11 @@ export class RazeClient {
       );
 
 
-
     const data =
       await response.json();
 
 
-
-    if(!response.ok){
+    if (!response.ok) {
 
       throw new Error(
         data?.message ??
@@ -83,54 +74,50 @@ export class RazeClient {
     }
 
 
-
     return data;
 
   }
 
 
-
-
-
-
-
-  async getCatalog(){
-
+  async getCatalog() {
 
     return this.request<{
 
-      success:boolean;
+      success: boolean;
 
-      products:Product[];
+      products: Product[];
 
     }>(
-
       `/api/catalog/${this.merchantId}/catalog`
-
     );
 
   }
 
 
-
-
-
-
-
+  /*
+   * ======================================================
+   * AI CHAT
+   * ======================================================
+   *
+   * The current cart is sent alongside the conversation.
+   *
+   * Only productId + quantity are sent.
+   * Prices are NEVER trusted from the client.
+   */
 
   async chat(
-    message:string,
-    history:RazeMessage[] = []
-  ){
-
+    message: string,
+    history: RazeMessage[] = [],
+    cart: CartItem[] = []
+  ) {
 
     return this.request<{
 
-      success:boolean;
+      success: boolean;
 
-      message:string;
+      message: string;
 
-      products?:Product[];
+      products?: Product[];
 
       action:
         | "SHOW_PRODUCTS"
@@ -138,209 +125,197 @@ export class RazeClient {
         | "CHECKOUT"
         | "NONE";
 
+    }>(
+      "/api/agent/chat",
+      {
 
-    }>("/api/agent/chat",{
+        method: "POST",
 
+        body: JSON.stringify({
 
-      method:"POST",
+          merchantId:
+            this.merchantId,
 
+          messages: [
 
-      body:JSON.stringify({
+            ...history,
 
+            {
 
-        merchantId:
-          this.merchantId,
+              role: "user",
 
+              content: message,
 
-        messages:[
+            },
 
-          ...history,
+          ],
 
+          cart: cart.map(
+            item => ({
 
-          {
+              productId:
+                item.productId,
 
-            role:"user",
+              quantity:
+                item.quantity,
 
-            content:message,
+            })
+          ),
 
-          }
+        }),
 
-        ],
-
-
-      }),
-
-
-    });
-
+      }
+    );
 
   }
 
 
-
-
-
-
-
-
+  /*
+   * ======================================================
+   * CREATE ORDER
+   * ======================================================
+   */
 
   async createOrder(
-    items:CartItem[]
-  ){
-
+    items: CartItem[]
+  ) {
 
     return this.request<{
 
-      success:boolean;
+      success: boolean;
 
-      order:{
+      order: {
 
-        id:string;
+        id: string;
 
-        amount:number;
+        amount: number;
 
-        currency:string;
+        currency: string;
 
-        status:string;
+        status: string;
 
       };
 
+    }>(
+      "/api/orders",
+      {
 
-    }>("/api/orders",{
+        method: "POST",
 
+        body: JSON.stringify({
 
-      method:"POST",
+          merchantId:
+            this.merchantId,
 
+          items,
 
-      body:JSON.stringify({
+        }),
 
-
-        merchantId:
-          this.merchantId,
-
-
-        items,
-
-
-      }),
-
-
-    });
-
+      }
+    );
 
   }
 
 
-
-
-
-
-
-
+  /*
+   * ======================================================
+   * REQUEST PAYMENT AUTHORIZATION
+   * ======================================================
+   */
 
   async requestPayment(
-    orderId:string,
-    reason:string
-  ):Promise<PaymentRequest>{
-
+    orderId: string,
+    reason: string
+  ): Promise<PaymentRequest> {
 
     const response =
       await this.request<{
 
-        success:boolean;
+        success: boolean;
 
-        action:{
+        action: {
 
-          id:string;
+          id: string;
 
-          amount:number;
+          amount: number;
 
-          status:string;
+          status: string;
 
         };
-
 
       }>(
         "/api/agent-actions/payment-request",
         {
 
+          method: "POST",
 
-          method:"POST",
-
-
-          body:JSON.stringify({
-
+          body: JSON.stringify({
 
             merchantId:
               this.merchantId,
 
-
             orderId,
-
 
             reason,
 
-
           }),
-
 
         }
       );
 
 
-
     return {
 
-
       orderId,
-
 
       actionId:
         response.action.id,
 
-
       amount:
         response.action.amount,
-
 
       currency:
         "INR",
 
-
       reason,
 
-
     };
-
 
   }
 
 
+  /*
+   * ======================================================
+   * GET PRODUCT
+   * ======================================================
+   */
+
   async getProduct(
-  productId:string
-){
+    productId: string
+  ) {
 
-  return this.request<{
+    return this.request<{
 
-    success:boolean;
+      success: boolean;
 
-    product:Product;
+      product: Product;
 
-  }>(
-    `/api/catalog/${this.merchantId}/product/${productId}`
-  );
+    }>(
+      `/api/catalog/${this.merchantId}/product/${productId}`
+    );
 
-}
-
-
+  }
 
 
-
+  /*
+   * ======================================================
+   * APPROVE PAYMENT
+   * ======================================================
+   */
 
   async approvePayment(
-    actionId:string
-  ){
-
+    actionId: string
+  ) {
 
     return this.request(
 
@@ -348,71 +323,84 @@ export class RazeClient {
 
       {
 
-        method:"POST",
+        method: "POST",
 
       }
 
     );
 
+  }
+
+
+  /*
+   * ======================================================
+   * VERIFY PAYMENT
+   * ======================================================
+   */
+
+  async verifyPayment(
+    data: {
+
+      orderId: string;
+
+      providerOrderId: string;
+
+      paymentId: string;
+
+      signature: string;
+
+    }
+  ) {
+
+    return this.request(
+
+      "/api/payments/verify",
+
+      {
+
+        method: "POST",
+
+        body: JSON.stringify(data),
+
+      }
+
+    );
 
   }
 
-async verifyPayment(data:{
-  orderId:string;
-  providerOrderId:string;
-  paymentId:string;
-  signature:string;
-}){
 
- return this.request(
-   "/api/payments/verify",
-   {
-
-    method:"POST",
-
-    body:JSON.stringify(data),
-
-   }
- );
-
-}
-
-
-
-
-
+  /*
+   * ======================================================
+   * CREATE PAYMENT
+   * ======================================================
+   */
 
   async createPayment(
-  orderId:string,
-  actionId:string
-):Promise<PaymentResponse>{
-
+    orderId: string,
+    actionId: string
+  ): Promise<PaymentResponse> {
 
     return this.request<PaymentResponse>(
 
-  "/api/payments/create",
+      "/api/payments/create",
 
-  {
+      {
 
-    method:"POST",
+        method: "POST",
 
-    body:JSON.stringify({
+        body: JSON.stringify({
 
-      orderId,
+          orderId,
 
-      agentActionId:
-        actionId,
+          agentActionId:
+            actionId,
 
-    }),
+        }),
 
-  }
+      }
 
-  
-
-);
-
+    );
 
   }
-
 
 }

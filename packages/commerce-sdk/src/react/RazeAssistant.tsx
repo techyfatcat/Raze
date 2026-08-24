@@ -140,6 +140,11 @@ export function RazeAssistant() {
         addItem,
     } = useRazeCart();
 
+    const {
+  chat,
+  onCheckout,
+} = useRaze();
+
 
     const [open, setOpen] =
         useState(false);
@@ -206,92 +211,135 @@ export function RazeAssistant() {
 
     async function send() {
 
-        const text =
-            input.trim();
+  const text =
+    input.trim();
 
 
-        if (
-            !text ||
-            loading
-        ) {
-            return;
-        }
+  if (
+    !text ||
+    loading
+  ) {
+    return;
+  }
 
 
-        const userMessage: RazeMessage = {
-            role: "user",
-            content: text,
-        };
+  const userMessage: RazeMessage = {
+
+    role: "user",
+
+    content: text,
+
+  };
 
 
-        setMessages(prev => [
-            ...prev,
-            userMessage,
-        ]);
+  setMessages(prev => [
+
+    ...prev,
+
+    userMessage,
+
+  ]);
 
 
-        setInput("");
+  setInput("");
 
-        setLoading(true);
-
-
-        try {
-
-            const response =
-                await client.chat(
-                    text,
-                    messages
-                );
+  setLoading(true);
 
 
-            const assistantMessage: RazeMessage = {
+  try {
 
-                role: "assistant",
+    const response =
+      await client.chat(
 
-                content:
-                    response.message,
+        text,
 
-                products:
-                    response.products ?? [],
+        messages
 
-                action:
-                    response.action ?? "NONE",
-
-            };
+      );
 
 
-            setMessages(prev => [
-                ...prev,
-                assistantMessage,
-            ]);
+    const assistantMessage:
+      RazeMessage = {
 
-        }
-        catch (error) {
+      role: "assistant",
 
-            console.error(
-                "Raze AI Error:",
-                error
-            );
+      content:
+        response.message,
+
+      products:
+        response.products ?? [],
+
+      action:
+        response.action ?? "NONE",
+
+    };
 
 
-            setMessages(prev => [
-                ...prev,
-                {
-                    role: "assistant",
-                    content:
-                        "Sorry, something went wrong. Please try again.",
-                    action: "NONE",
-                },
-            ]);
+    setMessages(prev => [
 
-        }
-        finally {
+      ...prev,
 
-            setLoading(false);
+      assistantMessage,
 
-        }
+    ]);
+
+
+    /*
+     * ------------------------------------------
+     * CHECKOUT ACTION
+     * ------------------------------------------
+     *
+     * The AI only decides that the customer
+     * wants to checkout.
+     *
+     * The actual order/payment flow remains
+     * with the merchant application.
+     */
+
+    if (
+      response.action ===
+      "CHECKOUT"
+    ) {
+
+      onCheckout?.();
 
     }
+
+  }
+  catch (error) {
+
+    console.error(
+      "Raze AI Error:",
+      error
+    );
+
+
+    setMessages(prev => [
+
+      ...prev,
+
+      {
+
+        role: "assistant",
+
+        content:
+          "Sorry, something went wrong. Please try again.",
+
+        action:
+          "NONE",
+
+      },
+
+    ]);
+
+  }
+  finally {
+
+    setLoading(false);
+
+  }
+
+}
 
 
     function handleKeyDown(

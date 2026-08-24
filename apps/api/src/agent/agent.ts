@@ -13,37 +13,56 @@ import type {
 
 export async function runAgent(
   context: AgentContext
-){
+) {
 
   const ai =
     getAIProvider();
 
 
   const response =
-    await ai.generateResponse({
+  await ai.generateResponse({
 
-      system:
-        RAZE_AGENT_SYSTEM_PROMPT,
+    system:
+      RAZE_AGENT_SYSTEM_PROMPT,
 
-      messages:
-        context.messages,
+    messages:
+      context.messages.map(
+        message => ({
 
-      merchantId:
-        context.merchantId,
+          role:
+            message.role === "assistant"
+              ? "assistant"
+              : "user",
 
-    });
+          content:
+            message.content,
+
+        })
+      ),
+
+    merchantId:
+      context.merchantId,
+
+    cart:
+      context.cart,
+
+  });
 
 
   try {
 
-    return JSON.parse(response);
+    return JSON.parse(
+      response
+    );
 
-  } catch {
+  }
+  catch {
 
     return {
 
       message:
-        response,
+        response ||
+        "I can help you find products and guide you through checkout. What are you looking for?",
 
       action:
         "NONE",
@@ -51,43 +70,5 @@ export async function runAgent(
     };
 
   }
-
-}
-
-export async function askRaze(
-  message: string
-) {
-
-  const response =
-    await fetch(
-      "http://localhost:5000/api/agent/chat",
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json",
-        },
-
-        body:JSON.stringify({
-
-          merchantId:
-            process.env
-              .NEXT_PUBLIC_MERCHANT_ID,
-
-          messages:[
-            {
-              role:"user",
-              content:message,
-            },
-          ],
-
-        }),
-
-      }
-    );
-
-
-  return response.json();
 
 }

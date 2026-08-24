@@ -1,15 +1,61 @@
+export interface AIMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AIRequest {
+  system: string;
+  messages: AIMessage[];
+  merchantId: string;
+}
+
 export interface AIProvider {
+  generateResponse(
+    input: AIRequest
+  ): Promise<string>;
+}
+export interface AIMessage {
 
-  generateResponse(input:{
-  system:string;
+  role:
+    "user"
+    | "assistant";
 
-  messages:{
-    role:string;
-    content:string;
+  content:
+    string;
+
+}
+
+
+export interface AIRequest {
+
+  system:
+    string;
+
+  messages:
+    AIMessage[];
+
+  merchantId:
+    string;
+
+  cart: {
+
+    productId:
+      string;
+
+    quantity:
+      number;
+
   }[];
 
-  merchantId:string;
+}
 
-}):Promise<string>;
+
+export interface AIProvider {
+
+  generateResponse(
+    input:
+      AIRequest
+  ):
+    Promise<string>;
 
 }

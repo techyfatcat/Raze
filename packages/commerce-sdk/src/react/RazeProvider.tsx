@@ -20,6 +20,7 @@ import type {
 
 import {
   RazeCartProvider,
+  useRazeCart,
 } from "./RazeCartProvider";
 
 
@@ -75,15 +76,15 @@ type RazeContextType = {
     product: Product
   ) => void;
 
-  onCheckout?: (
-    items: CartItem[]
-  ) => void;
+  onCheckout?: () => void;
 
 };
 
 
 const RazeContext =
-  createContext<RazeContextType | null>(null);
+  createContext<RazeContextType | null>(
+    null
+  );
 
 
 export function RazeProvider({
@@ -108,29 +109,108 @@ export function RazeProvider({
     product: Product
   ) => void;
 
-  onCheckout?: (
-    items: CartItem[]
+  onCheckout?: () => void;
+
+  children: ReactNode;
+
+}) {
+
+  return (
+
+    <RazeCartProvider>
+
+      <RazeProviderInner
+
+        merchantId={
+          merchantId
+        }
+
+        apiUrl={
+          apiUrl
+        }
+
+        onAddToCart={
+          onAddToCart
+        }
+
+        onCheckout={
+          onCheckout
+        }
+
+      >
+
+        {children}
+
+      </RazeProviderInner>
+
+    </RazeCartProvider>
+
+  );
+
+}
+
+
+/*
+ * ======================================================
+ * INTERNAL PROVIDER
+ * ======================================================
+ *
+ * This component is inside RazeCartProvider,
+ * so it can safely access the current cart.
+ */
+
+function RazeProviderInner({
+
+  merchantId,
+
+  apiUrl,
+
+  onAddToCart,
+
+  onCheckout,
+
+  children,
+
+}: {
+
+  merchantId: string;
+
+  apiUrl?: string;
+
+  onAddToCart?: (
+    product: Product
   ) => void;
+
+  onCheckout?: () => void;
 
   children: ReactNode;
 
 }) {
 
 
-  const client = useMemo(() => {
+  const {
+    items,
+  } = useRazeCart();
 
-    return new RazeClient({
+
+  const client =
+    useMemo(() => {
+
+      return new RazeClient({
+
+        merchantId,
+
+        apiUrl,
+
+      });
+
+    }, [
 
       merchantId,
 
       apiUrl,
 
-    });
-
-  }, [
-    merchantId,
-    apiUrl,
-  ]);
+    ]);
 
 
   const value =
@@ -146,44 +226,62 @@ export function RazeProvider({
       },
 
 
+      /*
+       * ------------------------------------------
+       * AI CHAT
+       * ------------------------------------------
+       *
+       * The current cart is automatically sent
+       * to the backend.
+       */
+
       chat: async (
+
         message: string,
-        history: RazeMessage[] = []
+
+        history:
+          RazeMessage[] = []
+
       ) => {
 
-        /*
-         * History is currently kept at the
-         * provider level so the SDK API is
-         * ready for conversational chat.
-         *
-         * The current RazeClient.chat()
-         * accepts only the message.
-         */
+        return client.chat(
 
-        void history;
+          message,
 
-        return client.chat(message);
+          history,
+
+          items
+
+        );
 
       },
 
 
       createOrder: (
-        items: CartItem[]
+        orderItems: CartItem[]
       ) => {
 
-        return client.createOrder(items);
+        return client.createOrder(
+          orderItems
+        );
 
       },
 
 
       requestPayment: (
+
         orderId: string,
+
         reason: string
+
       ) => {
 
         return client.requestPayment(
+
           orderId,
+
           reason
+
         );
 
       },
@@ -201,13 +299,19 @@ export function RazeProvider({
 
 
       createPayment: (
+
         orderId: string,
+
         actionId: string
+
       ) => {
 
         return client.createPayment(
+
           orderId,
+
           actionId
+
         );
 
       },
@@ -220,6 +324,8 @@ export function RazeProvider({
     }), [
 
       client,
+
+      items,
 
       onAddToCart,
 
@@ -234,11 +340,7 @@ export function RazeProvider({
       value={value}
     >
 
-      <RazeCartProvider>
-
-        {children}
-
-      </RazeCartProvider>
+      {children}
 
     </RazeContext.Provider>
 
@@ -250,7 +352,9 @@ export function RazeProvider({
 export function useRaze() {
 
   const context =
-    useContext(RazeContext);
+    useContext(
+      RazeContext
+    );
 
 
   if (!context) {

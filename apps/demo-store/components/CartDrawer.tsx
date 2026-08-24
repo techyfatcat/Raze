@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  forwardRef,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useState,
 } from "react";
@@ -28,802 +30,792 @@ import {
 } from "lucide-react";
 
 
-export default function CartDrawer() {
+/* =========================================================
+   CART DRAWER REF
+========================================================= */
 
-  const {
-    client,
-  } = useRaze();
-
-
-  const {
-    items,
-    updateQuantity,
-    removeItem,
-    clearCart,
-    itemCount,
-  } = useRazeCart();
+export type CartDrawerRef = {
+  open: () => void;
+  checkout: () => void;
+};
 
 
-  const [
-    open,
-    setOpen,
-  ] = useState(false);
+/* =========================================================
+   CART DRAWER
+========================================================= */
+
+const CartDrawer = forwardRef<CartDrawerRef>(
+  function CartDrawer(_, ref) {
+
+    const {
+      client,
+    } = useRaze();
 
 
-  const [
-    products,
-    setProducts,
-  ] = useState<Record<string, Product>>({});
+    const {
+      items,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      itemCount,
+    } = useRazeCart();
 
 
-  const [
-    paymentRequest,
-    setPaymentRequest,
-  ] = useState<PaymentRequest | null>(null);
+    const [
+      open,
+      setOpen,
+    ] = useState(false);
 
 
-  const [
-    processingPayment,
-    setProcessingPayment,
-  ] = useState(false);
-
-  useEffect(() => {
-
-    async function loadProducts() {
-
-      const data: Record<string, Product> = {};
+    const [
+      products,
+      setProducts,
+    ] = useState<Record<string, Product>>({});
 
 
-      for (const item of items) {
+    const [
+      paymentRequest,
+      setPaymentRequest,
+    ] = useState<PaymentRequest | null>(null);
 
-        try {
 
-          const response =
-            await client.getProduct(
-              item.productId
+    const [
+      processingPayment,
+      setProcessingPayment,
+    ] = useState(false);
+
+
+
+
+   
+    /* =====================================================
+       LOAD CART PRODUCTS
+    ===================================================== */
+
+    useEffect(() => {
+
+      async function loadProducts() {
+
+        const data: Record<string, Product> = {};
+
+
+        for (const item of items) {
+
+          try {
+
+            const response =
+              await client.getProduct(
+                item.productId
+              );
+
+
+            data[item.productId] =
+              response.product;
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "Cart product error",
+              error
             );
 
-
-          data[item.productId] =
-            response.product;
+          }
 
         }
-        catch (error) {
 
-          console.error(
-            "Cart product error",
-            error
-          );
 
-        }
+        setProducts(data);
 
       }
 
 
-      setProducts(data);
+      if (items.length) {
 
-    }
+        loadProducts();
 
+      }
 
-    if (items.length) {
+      else {
 
-      loadProducts();
+        setProducts({});
 
-    }
-    else {
-
-      setProducts({});
-
-    }
-
-  }, [
-    items,
-    client,
-  ]);
-
-
-  const subtotal =
-    useMemo(() => {
-
-      return items.reduce(
-        (total, item) => {
-
-          const product =
-            products[item.productId];
-
-          if (!product) {
-            return total;
-          }
-
-          return (
-            total +
-            product.price *
-            item.quantity
-          );
-
-        },
-        0
-      );
+      }
 
     }, [
       items,
-      products,
+      client,
     ]);
 
 
+    /* =====================================================
+       SUBTOTAL
+    ===================================================== */
+
+    const subtotal =
+      useMemo(() => {
+
+        return items.reduce(
+          (total, item) => {
+
+            const product =
+              products[item.productId];
 
 
-  /*
-   * Checkout
-   */
-  async function checkout() {
-
-    if (
-      !items.length ||
-      processingPayment
-    ) {
-      return;
-    }
+            if (!product) {
+              return total;
+            }
 
 
-    try {
+            return (
+              total +
+              product.price *
+              item.quantity
+            );
 
-      setProcessingPayment(true);
-
-
-      const order =
-        await client.createOrder(
-          items
+          },
+          0
         );
 
+      }, [
+        items,
+        products,
+      ]);
 
-      const payment =
-        await client.requestPayment(
 
-          order.order.id,
+    /* =====================================================
+       CREATE ORDER + REQUEST PAYMENT
+    ===================================================== */
 
-          "Order checkout"
+    async function checkout() {
 
+      if (
+        !items.length ||
+        processingPayment
+      ) {
+        return;
+      }
+
+
+      try {
+
+        setProcessingPayment(true);
+
+
+        const order =
+          await client.createOrder(
+            items
+          );
+
+
+        const payment =
+          await client.requestPayment(
+
+            order.order.id,
+
+            "Order checkout"
+
+          );
+
+
+        setPaymentRequest(
+          payment
         );
 
+      }
 
-      setPaymentRequest(
-        payment
-      );
+      catch (error) {
 
-    }
-    catch (error) {
+        console.error(
+          "Checkout error",
+          error
+        );
 
-      console.error(
-        "Checkout error",
-        error
-      );
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to start checkout"
+        );
 
-    }
-    finally {
+      }
 
-      setProcessingPayment(false);
+      finally {
 
-    }
+        setProcessingPayment(false);
 
-  }
+      }
 
-
-
-
-  /*
-   * Approve AI payment request
-   * and open Razorpay Checkout
-   */
-  async function approvePayment() {
-
-    if (!paymentRequest) {
-      return;
     }
 
 
-    try {
+     useImperativeHandle(
+  ref,
+  () => ({
+    open() {
+      setOpen(true);
+    },
 
-      setProcessingPayment(true);
+    checkout() {
+      void checkout();
+    },
+  }),
+  [items, processingPayment]
+);
 
 
-      /*
-       * User approves AI payment action
-       */
-      await client.approvePayment(
-        paymentRequest.actionId
-      );
+
+    /* =====================================================
+       APPROVE PAYMENT + OPEN RAZORPAY
+    ===================================================== */
+
+    async function approvePayment() {
+
+      if (!paymentRequest) {
+        return;
+      }
 
 
-      /*
-       * Creates Razorpay order
-       */
-      const payment =
-        await client.createPayment(
+      try {
 
-          paymentRequest.orderId,
+        setProcessingPayment(true);
 
+
+        /*
+         * First approve the customer authorization.
+         */
+
+        await client.approvePayment(
           paymentRequest.actionId
-
         );
 
 
-      const options = {
+        /*
+         * Create Razorpay payment order.
+         */
 
-        key:
-          payment.key,
+        const payment =
+          await client.createPayment(
 
+            paymentRequest.orderId,
 
-        amount:
-          payment.amount * 100,
+            paymentRequest.actionId
 
-
-        currency:
-          payment.currency,
-
-
-        name:
-          "Raze Store",
+          );
 
 
-        description:
-          "AI Commerce Payment",
+        /*
+         * Razorpay checkout configuration.
+         */
+
+        const options = {
+
+          key:
+            payment.key,
+
+          amount:
+            payment.amount * 100,
+
+          currency:
+            payment.currency,
+
+          name:
+            "Raze Store",
+
+          description:
+            "AI Commerce Payment",
+
+          order_id:
+            payment.providerOrderId,
 
 
-        order_id:
-          payment.providerOrderId,
+          handler:
+            async function (response: any) {
+
+              try {
+
+                /*
+                 * Verify payment on our server.
+                 */
+
+                await client.verifyPayment({
+
+                  orderId:
+                    payment.orderId,
+
+                  providerOrderId:
+                    response.razorpay_order_id,
+
+                  paymentId:
+                    response.razorpay_payment_id,
+
+                  signature:
+                    response.razorpay_signature,
+
+                });
 
 
-        handler:
-          async function(response: any) {
-
-            try {
-
-              await client.verifyPayment({
-
-                orderId:
-                  payment.orderId,
+                alert(
+                  "Payment successful 🎉"
+                );
 
 
-                providerOrderId:
-                  response.razorpay_order_id,
+                clearCart();
 
 
-                paymentId:
-                  response.razorpay_payment_id,
+                setPaymentRequest(
+                  null
+                );
 
 
-                signature:
-                  response.razorpay_signature,
+                setOpen(
+                  false
+                );
 
-              });
+              }
+
+              catch (error) {
+
+                console.error(
+                  "Verification error",
+                  error
+                );
+
+                alert(
+                  error instanceof Error
+                    ? error.message
+                    : "Payment verification failed"
+                );
+
+              }
+
+            },
 
 
-              alert(
-                "Payment successful 🎉"
-              );
+          theme: {
 
-
-              clearCart();
-
-
-              setPaymentRequest(
-                null
-              );
-
-
-              setOpen(
-                false
-              );
-
-            }
-            catch (error) {
-
-              console.error(
-                "Verification error",
-                error
-              );
-
-            }
+            color:
+              "#000000",
 
           },
 
-
-        theme: {
-
-          color:
-            "#000000",
-
-        },
-
-      };
+        };
 
 
-      const razorpay =
-        new window.Razorpay(
-          options
-        );
+        /*
+         * Razorpay is loaded globally
+         * through layout.tsx.
+         */
 
+        if (
+          typeof window === "undefined" ||
+          !window.Razorpay
+        ) {
 
-      razorpay.open();
+          throw new Error(
+            "Razorpay checkout is not loaded"
+          );
 
-    }
-    catch (error) {
-
-      console.error(
-        "Payment error",
-        error
-      );
-
-    }
-    finally {
-
-      setProcessingPayment(
-        false
-      );
-
-    }
-
-  }
-
-
-
-
-  return (
-
-    <>
-
-
-      <button
-
-        onClick={() =>
-          setOpen(true)
         }
 
-        className="
-          flex
-          items-center
-          gap-2
-          text-sm
-          text-neutral-700
-          hover:text-black
-          transition
-        "
 
-      >
-
-        <ShoppingCart
-          size={18}
-          strokeWidth={1.8}
-        />
-
-        <span>
-          Cart
-        </span>
+        const razorpay =
+          new window.Razorpay(
+            options
+          );
 
 
-        {itemCount > 0 && (
+        razorpay.open();
 
-          <span
+      }
 
-            className="
-              min-w-5
-              h-5
-              px-1
-              rounded-full
-              bg-black
-              text-white
-              flex
-              items-center
-              justify-center
-              text-[11px]
-              font-medium
-            "
+      catch (error) {
 
-          >
+        console.error(
+          "Payment error",
+          error
+        );
 
-            {itemCount}
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to start payment"
+        );
 
-          </span>
+      }
 
-        )}
+      finally {
 
-      </button>
+        setProcessingPayment(
+          false
+        );
+
+      }
+
+    }
 
 
+    /* =====================================================
+       RENDER
+    ===================================================== */
 
-      {open && (
+    return (
 
-        <div
+      <>
 
-          className="
-            fixed
-            inset-0
-            z-50
-            flex
-            items-center
-            justify-center
-            bg-black/35
-            backdrop-blur-sm
-            p-4
-          "
+        {/* =================================================
+            CART BUTTON
+        ================================================= */}
+
+        <button
 
           onClick={() =>
-            setOpen(false)
+            setOpen(true)
           }
+
+          className="
+            flex
+            items-center
+            gap-2
+            text-sm
+            text-neutral-700
+            hover:text-black
+            transition
+          "
 
         >
 
+          <ShoppingCart
+            size={18}
+            strokeWidth={1.8}
+          />
+
+
+          <span>
+            Cart
+          </span>
+
+
+          {itemCount > 0 && (
+
+            <span
+
+              className="
+                min-w-5
+                h-5
+                px-1
+                rounded-full
+                bg-black
+                text-white
+                flex
+                items-center
+                justify-center
+                text-[11px]
+                font-medium
+              "
+
+            >
+
+              {itemCount}
+
+            </span>
+
+          )}
+
+        </button>
+
+
+        {/* =================================================
+            CART MODAL
+        ================================================= */}
+
+        {open && (
+
           <div
 
-            onClick={
-              event =>
-                event.stopPropagation()
-            }
-
             className="
-              w-full
-              max-w-xl
-              max-h-[90vh]
-              bg-white
-              rounded-3xl
-              shadow-2xl
-              overflow-hidden
+              fixed
+              inset-0
+              z-50
               flex
-              flex-col
+              items-center
+              justify-center
+              bg-black/35
+              backdrop-blur-sm
+              p-4
             "
+
+            onClick={() =>
+              setOpen(false)
+            }
 
           >
 
             <div
 
+              onClick={event =>
+                event.stopPropagation()
+              }
+
               className="
+                w-full
+                max-w-xl
+                max-h-[90vh]
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                overflow-hidden
                 flex
-                items-center
-                justify-between
-                px-7
-                py-6
-                border-b
-                border-neutral-100
+                flex-col
               "
 
             >
 
-              <div>
+              {/* HEADER */}
 
-                <h2
-
-                  className="
-                    text-xl
-                    font-semibold
-                    tracking-tight
-                  "
-
-                >
-
-                  Your Cart
-
-                </h2>
-
-
-                <p
-
-                  className="
-                    mt-1
-                    text-sm
-                    text-neutral-500
-                  "
-
-                >
-
-                  {itemCount === 0
-                    ? ""
-                    : `${itemCount} ${
-                        itemCount === 1
-                          ? "item"
-                          : "items"
-                      }`
-                  }
-
-                </p>
-
-              </div>
-
-
-              <button
-
-                onClick={() =>
-                  setOpen(false)
-                }
+              <div
 
                 className="
-                  h-9
-                  w-9
-                  rounded-full
                   flex
                   items-center
-                  justify-center
-                  text-neutral-500
-                  hover:bg-neutral-100
-                  hover:text-black
-                  transition
+                  justify-between
+                  px-7
+                  py-6
+                  border-b
+                  border-neutral-100
                 "
-
-                aria-label="Close cart"
 
               >
 
-                <X
-                  size={19}
-                />
+                <div>
 
-              </button>
-
-            </div>
-
-
-
-
-
-            <div
-
-              className="
-                flex-1
-                overflow-y-auto
-                px-7
-                py-6
-              "
-
-            >
-
-              {items.length === 0 ? (
-
-                <div
-
-                  className="
-                    min-h-[300px]
-                    flex
-                    flex-col
-                    items-center
-                    justify-center
-                    text-center
-                  "
-
-                >
-
-                  <div
+                  <h2
 
                     className="
-                      h-16
-                      w-16
-                      rounded-full
-                      bg-neutral-100
-                      flex
-                      items-center
-                      justify-center
-                      mb-5
+                      text-xl
+                      font-semibold
+                      tracking-tight
                     "
 
                   >
 
-                    <PackageOpen
-                      size={28}
-                      className="text-neutral-500"
-                    />
+                    Your Cart
 
-                  </div>
-
-
-                  <h3
-
-                    className="
-                      text-lg
-                      font-medium
-                    "
-
-                  >
-
-                    Cart is empty
-
-                  </h3>
+                  </h2>
 
 
                   <p
 
                     className="
-                      mt-2
+                      mt-1
                       text-sm
                       text-neutral-500
-                      max-w-xs
                     "
 
                   >
 
-                    Add some products and
-                    they'll appear here.
+                    {itemCount === 0
+                      ? ""
+                      : `${itemCount} ${itemCount === 1
+                        ? "item"
+                        : "items"
+                      }`
+                    }
 
                   </p>
 
                 </div>
 
-              ) : (
 
-                <div
+                <button
+
+                  onClick={() =>
+                    setOpen(false)
+                  }
+
                   className="
-                    space-y-3
+                    h-9
+                    w-9
+                    rounded-full
+                    flex
+                    items-center
+                    justify-center
+                    text-neutral-500
+                    hover:bg-neutral-100
+                    hover:text-black
+                    transition
                   "
+
+                  aria-label="Close cart"
+
                 >
 
-                  {items.map(item => {
+                  <X
+                    size={19}
+                  />
 
-                    const product =
-                      products[
+                </button>
+
+              </div>
+
+
+              {/* CART CONTENT */}
+
+              <div
+
+                className="
+                  flex-1
+                  overflow-y-auto
+                  px-7
+                  py-6
+                "
+
+              >
+
+                {items.length === 0 ? (
+
+                  <div
+
+                    className="
+                      min-h-[300px]
+                      flex
+                      flex-col
+                      items-center
+                      justify-center
+                      text-center
+                    "
+
+                  >
+
+                    <div
+
+                      className="
+                        h-16
+                        w-16
+                        rounded-full
+                        bg-neutral-100
+                        flex
+                        items-center
+                        justify-center
+                        mb-5
+                      "
+
+                    >
+
+                      <PackageOpen
+                        size={28}
+                        className="text-neutral-500"
+                      />
+
+                    </div>
+
+
+                    <h3
+
+                      className="
+                        text-lg
+                        font-medium
+                      "
+
+                    >
+
+                      Cart is empty
+
+                    </h3>
+
+
+                    <p
+
+                      className="
+                        mt-2
+                        text-sm
+                        text-neutral-500
+                        max-w-xs
+                      "
+
+                    >
+
+                      Add some products and
+                      they'll appear here.
+
+                    </p>
+
+                  </div>
+
+                ) : (
+
+                  <div
+                    className="
+                      space-y-3
+                    "
+                  >
+
+                    {items.map(item => {
+
+                      const product =
+                        products[
                         item.productId
-                      ];
+                        ];
 
 
-                    return (
-
-                      <div
-
-                        key={
-                          item.productId
-                        }
-
-                        className="
-                          rounded-2xl
-                          border
-                          border-neutral-200
-                          p-4
-                          flex
-                          gap-4
-                        "
-
-                      >
-
-                        {/* Product visual */}
+                      return (
 
                         <div
 
+                          key={
+                            item.productId
+                          }
+
                           className="
-                            h-20
-                            w-20
-                            shrink-0
-                            rounded-xl
-                            bg-neutral-100
+                            rounded-2xl
+                            border
+                            border-neutral-200
+                            p-4
                             flex
-                            items-center
-                            justify-center
-                            overflow-hidden
+                            gap-4
                           "
 
                         >
 
-                          <span
-                            className="
-                              text-xs
-                              text-neutral-400
-                            "
-                          >
-
-                            Product
-
-                          </span>
-
-                        </div>
-
-
-
-                        {/* Product info */}
-
-                        <div
-                          className="
-                            flex-1
-                            min-w-0
-                          "
-                        >
+                          {/* PRODUCT VISUAL */}
 
                           <div
+
                             className="
+                              h-20
+                              w-20
+                              shrink-0
+                              rounded-xl
+                              bg-neutral-100
                               flex
-                              justify-between
-                              gap-3
+                              items-center
+                              justify-center
+                              overflow-hidden
                             "
+
                           >
 
-                            <div>
-
-                              <h3
-
-                                className="
-                                  font-medium
-                                  truncate
-                                "
-
-                              >
-
-                                {product
-                                  ? product.name
-                                  : "Loading..."
-                                }
-
-                              </h3>
-
-
-                              {product && (
-
-                                <p
-
-                                  className="
-                                    mt-1
-                                    text-sm
-                                    text-neutral-500
-                                  "
-
-                                >
-
-                                  ₹
-                                  {product.price
-                                    .toLocaleString("en-IN")
-                                  }
-
-                                </p>
-
-                              )}
-
-                            </div>
-
-
-                            <button
-
-                              onClick={() =>
-                                removeItem(
-                                  item.productId
-                                )
-                              }
-
+                            <span
                               className="
-                                h-8
-                                w-8
-                                shrink-0
-                                rounded-full
-                                flex
-                                items-center
-                                justify-center
-                                text-neutral-400
-                                hover:bg-red-50
-                                hover:text-red-500
-                                transition
-                              "
-
-                              aria-label={
-                                `Remove ${
-                                  product?.name ??
-                                  "product"
-                                }`
-                              }
-
+    text-xs
+    text-neutral-400
+  "
                             >
+                              Product
+                            </span>
 
-                              <Trash2
-                                size={16}
-                              />
 
-                            </button>
 
                           </div>
 
 
-
-                          {/* Quantity */}
+                          {/* PRODUCT INFO */}
 
                           <div
 
                             className="
-                              mt-4
-                              flex
-                              items-center
-                              justify-between
+                              flex-1
+                              min-w-0
                             "
 
                           >
@@ -832,86 +824,89 @@ export default function CartDrawer() {
 
                               className="
                                 flex
-                                items-center
-                                rounded-full
-                                border
-                                border-neutral-200
-                                overflow-hidden
+                                justify-between
+                                gap-3
                               "
 
                             >
 
+                              <div>
+
+                                <h3
+
+                                  className="
+                                    font-medium
+                                    truncate
+                                  "
+
+                                >
+
+                                  {product
+                                    ? product.name
+                                    : "Loading..."
+                                  }
+
+                                </h3>
+
+
+                                {product && (
+
+                                  <p
+
+                                    className="
+                                      mt-1
+                                      text-sm
+                                      text-neutral-500
+                                    "
+
+                                  >
+
+                                    ₹
+                                    {product.price
+                                      .toLocaleString(
+                                        "en-IN"
+                                      )
+                                    }
+
+                                  </p>
+
+                                )}
+
+                              </div>
+
+
                               <button
 
                                 onClick={() =>
-                                  updateQuantity(
-                                    item.productId,
-                                    item.quantity - 1
+                                  removeItem(
+                                    item.productId
                                   )
                                 }
 
                                 className="
                                   h-8
                                   w-8
+                                  shrink-0
+                                  rounded-full
                                   flex
                                   items-center
                                   justify-center
-                                  hover:bg-neutral-100
+                                  text-neutral-400
+                                  hover:bg-red-50
+                                  hover:text-red-500
                                   transition
                                 "
 
-                                aria-label="Decrease quantity"
-
-                              >
-
-                                <Minus
-                                  size={14}
-                                />
-
-                              </button>
-
-
-                              <span
-
-                                className="
-                                  w-8
-                                  text-center
-                                  text-sm
-                                  font-medium
-                                "
-
-                              >
-
-                                {item.quantity}
-
-                              </span>
-
-
-                              <button
-
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.productId,
-                                    item.quantity + 1
-                                  )
+                                aria-label={
+                                  `Remove ${product?.name ??
+                                  "product"
+                                  }`
                                 }
 
-                                className="
-                                  h-8
-                                  w-8
-                                  flex
-                                  items-center
-                                  justify-center
-                                  hover:bg-neutral-100
-                                  transition
-                                "
-
-                                aria-label="Increase quantity"
-
                               >
 
-                                <Plus
-                                  size={14}
+                                <Trash2
+                                  size={16}
                                 />
 
                               </button>
@@ -919,38 +914,275 @@ export default function CartDrawer() {
                             </div>
 
 
-                            {product && (
+                            {/* QUANTITY */}
 
-                              <p
+                            <div
+
+                              className="
+                                mt-4
+                                flex
+                                items-center
+                                justify-between
+                              "
+
+                            >
+
+                              <div
 
                                 className="
-                                  text-sm
-                                  font-medium
+                                  flex
+                                  items-center
+                                  rounded-full
+                                  border
+                                  border-neutral-200
+                                  overflow-hidden
                                 "
 
                               >
 
-                                ₹
-                                {(
-                                  product.price *
-                                  item.quantity
-                                ).toLocaleString(
-                                  "en-IN"
-                                )}
+                                <button
 
-                              </p>
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.productId,
+                                      item.quantity - 1
+                                    )
+                                  }
 
-                            )}
+                                  className="
+                                    h-8
+                                    w-8
+                                    flex
+                                    items-center
+                                    justify-center
+                                    hover:bg-neutral-100
+                                    transition
+                                  "
+
+                                  aria-label="Decrease quantity"
+
+                                >
+
+                                  <Minus
+                                    size={14}
+                                  />
+
+                                </button>
+
+
+                                <span
+
+                                  className="
+                                    w-8
+                                    text-center
+                                    text-sm
+                                    font-medium
+                                  "
+
+                                >
+
+                                  {item.quantity}
+
+                                </span>
+
+
+                                <button
+
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.productId,
+                                      item.quantity + 1
+                                    )
+                                  }
+
+                                  className="
+                                    h-8
+                                    w-8
+                                    flex
+                                    items-center
+                                    justify-center
+                                    hover:bg-neutral-100
+                                    transition
+                                  "
+
+                                  aria-label="Increase quantity"
+
+                                >
+
+                                  <Plus
+                                    size={14}
+                                  />
+
+                                </button>
+
+                              </div>
+
+
+                              {product && (
+
+                                <p
+
+                                  className="
+                                    text-sm
+                                    font-medium
+                                  "
+
+                                >
+
+                                  ₹
+                                  {(
+                                    product.price *
+                                    item.quantity
+                                  ).toLocaleString(
+                                    "en-IN"
+                                  )}
+
+                                </p>
+
+                              )}
+
+                            </div>
 
                           </div>
 
                         </div>
 
-                      </div>
+                      );
 
-                    );
+                    })}
 
-                  })}
+                  </div>
+
+                )}
+
+              </div>
+
+
+              {/* FOOTER */}
+
+              {items.length > 0 && (
+
+                <div
+
+                  className="
+                    border-t
+                    border-neutral-100
+                    px-7
+                    py-6
+                  "
+
+                >
+
+                  <div
+
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                      mb-4
+                    "
+
+                  >
+
+                    <span
+
+                      className="
+                        text-sm
+                        text-neutral-500
+                      "
+
+                    >
+
+                      Subtotal
+
+                    </span>
+
+
+                    <span
+
+                      className="
+                        text-xl
+                        font-semibold
+                      "
+
+                    >
+
+                      ₹
+                      {subtotal.toLocaleString(
+                        "en-IN"
+                      )}
+
+                    </span>
+
+                  </div>
+
+
+                  <button
+
+                    onClick={checkout}
+
+                    disabled={
+                      processingPayment ||
+                      items.length === 0
+                    }
+
+                    className="
+                      w-full
+                      h-12
+                      rounded-full
+                      bg-black
+                      text-white
+                      flex
+                      items-center
+                      justify-center
+                      gap-2
+                      font-medium
+                      hover:bg-neutral-800
+                      transition
+                      disabled:opacity-50
+                      disabled:cursor-not-allowed
+                    "
+
+                  >
+
+                    {processingPayment
+                      ? "Processing..."
+                      : "Proceed to Checkout"
+                    }
+
+
+                    {!processingPayment && (
+
+                      <ArrowRight
+                        size={17}
+                      />
+
+                    )}
+
+                  </button>
+
+
+                  <div
+
+                    className="
+                      mt-4
+                      flex
+                      items-center
+                      justify-center
+                      gap-2
+                      text-xs
+                      text-neutral-400
+                    "
+
+                  >
+
+                    <ShieldCheck
+                      size={14}
+                    />
+
+                    Secure checkout powered by Raze
+
+                  </div>
 
                 </div>
 
@@ -958,180 +1190,29 @@ export default function CartDrawer() {
 
             </div>
 
-
-
-
-            {/* =====================
-                FOOTER
-            ====================== */}
-
-            {items.length > 0 && (
-
-              <div
-
-                className="
-                  border-t
-                  border-neutral-100
-                  px-7
-                  py-6
-                "
-
-              >
-
-                <div
-
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    mb-4
-                  "
-
-                >
-
-                  <span
-                    className="
-                      text-sm
-                      text-neutral-500
-                    "
-                  >
-
-                    Subtotal
-
-                  </span>
-
-
-                  <span
-
-                    className="
-                      text-xl
-                      font-semibold
-                    "
-
-                  >
-
-                    ₹
-                    {subtotal.toLocaleString(
-                      "en-IN"
-                    )}
-
-                  </span>
-
-                </div>
-
-
-
-                <button
-
-                  onClick={checkout}
-
-                  disabled={
-                    processingPayment ||
-                    items.length === 0
-                  }
-
-                  className="
-                    w-full
-                    h-12
-                    rounded-full
-                    bg-black
-                    text-white
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    font-medium
-                    hover:bg-neutral-800
-                    transition
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
-
-                >
-
-                  {processingPayment
-                    ? "Processing..."
-                    : "Proceed to Checkout"
-                  }
-
-
-                  {!processingPayment && (
-
-                    <ArrowRight
-                      size={17}
-                    />
-
-                  )}
-
-                </button>
-
-
-                <div
-
-                  className="
-                    mt-4
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    text-xs
-                    text-neutral-400
-                  "
-
-                >
-
-                  <ShieldCheck
-                    size={14}
-                  />
-
-                  Secure checkout powered by Raze
-
-                </div>
-
-              </div>
-
-            )}
-
           </div>
 
-        </div>
-
-      )}
+        )}
 
 
+        {/* =================================================
+            PAYMENT APPROVAL MODAL
+        ================================================= */}
 
-
-      {/* =========================
-          PAYMENT APPROVAL MODAL
-      ========================== */}
-
-      {paymentRequest && (
-
-        <div
-
-          className="
-            fixed
-            inset-0
-            z-[100]
-            bg-black/40
-            backdrop-blur-sm
-            flex
-            items-center
-            justify-center
-            p-4
-          "
-
-        >
+        {paymentRequest && (
 
           <div
 
             className="
-              w-full
-              max-w-md
-              bg-white
-              rounded-3xl
-              shadow-2xl
-              p-7
+              fixed
+              inset-0
+              z-[100]
+              bg-black/40
+              backdrop-blur-sm
+              flex
+              items-center
+              justify-center
+              p-4
             "
 
           >
@@ -1139,54 +1220,172 @@ export default function CartDrawer() {
             <div
 
               className="
-                flex
-                items-start
-                justify-between
+                w-full
+                max-w-md
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                p-7
               "
 
             >
 
-              <div>
+              <div
+
+                className="
+                  flex
+                  items-start
+                  justify-between
+                "
+
+              >
+
+                <div>
+
+                  <p
+
+                    className="
+                      text-xs
+                      uppercase
+                      tracking-widest
+                      text-neutral-400
+                    "
+
+                  >
+
+                    Raze AI
+
+                  </p>
+
+
+                  <h2
+
+                    className="
+                      mt-1
+                      text-xl
+                      font-semibold
+                    "
+
+                  >
+
+                    Payment Approval
+
+                  </h2>
+
+                </div>
+
+
+                <button
+
+                  onClick={() =>
+                    setPaymentRequest(
+                      null
+                    )
+                  }
+
+                  disabled={
+                    processingPayment
+                  }
+
+                  className="
+                    h-9
+                    w-9
+                    rounded-full
+                    flex
+                    items-center
+                    justify-center
+                    text-neutral-400
+                    hover:bg-neutral-100
+                    transition
+                  "
+
+                >
+
+                  <X
+                    size={18}
+                  />
+
+                </button>
+
+              </div>
+
+
+              <div
+
+                className="
+                  mt-6
+                  rounded-2xl
+                  bg-neutral-50
+                  p-5
+                "
+
+              >
 
                 <p
 
                   className="
-                    text-xs
-                    uppercase
-                    tracking-widest
-                    text-neutral-400
+                    text-sm
+                    text-neutral-500
                   "
 
                 >
 
-                  Raze AI
+                  Raze wants your permission
+                  to proceed with this payment.
 
                 </p>
 
 
-                <h2
+                <div
 
                   className="
-                    mt-1
-                    text-xl
-                    font-semibold
+                    mt-4
+                    flex
+                    items-end
+                    justify-between
                   "
 
                 >
 
-                  Payment Approval
+                  <span
 
-                </h2>
+                    className="
+                      text-sm
+                      text-neutral-500
+                    "
+
+                  >
+
+                    Amount
+
+                  </span>
+
+
+                  <span
+
+                    className="
+                      text-2xl
+                      font-semibold
+                    "
+
+                  >
+
+                    ₹
+                    {paymentRequest.amount
+                      .toLocaleString("en-IN")
+                    }
+
+                  </span>
+
+                </div>
 
               </div>
 
 
               <button
 
-                onClick={() =>
-                  setPaymentRequest(
-                    null
-                  )
+                onClick={
+                  approvePayment
                 }
 
                 disabled={
@@ -1194,156 +1393,61 @@ export default function CartDrawer() {
                 }
 
                 className="
-                  h-9
-                  w-9
+                  mt-6
+                  w-full
+                  h-12
                   rounded-full
-                  flex
-                  items-center
-                  justify-center
-                  text-neutral-400
-                  hover:bg-neutral-100
+                  bg-black
+                  text-white
+                  font-medium
+                  hover:bg-neutral-800
                   transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
 
               >
 
-                <X
-                  size={18}
-                />
+                {processingPayment
+                  ? "Opening secure checkout..."
+                  : "Approve & Continue"
+                }
 
               </button>
 
-            </div>
-
-
-            <div
-
-              className="
-                mt-6
-                rounded-2xl
-                bg-neutral-50
-                p-5
-              "
-
-            >
 
               <p
 
                 className="
-                  text-sm
-                  text-neutral-500
+                  mt-4
+                  text-center
+                  text-xs
+                  text-neutral-400
                 "
 
               >
 
-                Raze wants your permission
-                to proceed with this payment.
+                You will be redirected to
+                Razorpay's secure checkout.
 
               </p>
 
-
-              <div
-
-                className="
-                  mt-4
-                  flex
-                  items-end
-                  justify-between
-                "
-
-              >
-
-                <span
-                  className="
-                    text-sm
-                    text-neutral-500
-                  "
-                >
-
-                  Amount
-
-                </span>
-
-
-                <span
-
-                  className="
-                    text-2xl
-                    font-semibold
-                  "
-
-                >
-
-                  ₹
-                  {paymentRequest.amount
-                    .toLocaleString("en-IN")
-                  }
-
-                </span>
-
-              </div>
-
             </div>
-
-
-            <button
-
-              onClick={
-                approvePayment
-              }
-
-              disabled={
-                processingPayment
-              }
-
-              className="
-                mt-6
-                w-full
-                h-12
-                rounded-full
-                bg-black
-                text-white
-                font-medium
-                hover:bg-neutral-800
-                transition
-                disabled:opacity-50
-                disabled:cursor-not-allowed
-              "
-
-            >
-
-              {processingPayment
-                ? "Opening secure checkout..."
-                : "Approve & Continue"
-              }
-
-            </button>
-
-
-            <p
-
-              className="
-                mt-4
-                text-center
-                text-xs
-                text-neutral-400
-              "
-
-            >
-
-              You will be redirected to
-              Razorpay's secure checkout.
-
-            </p>
 
           </div>
 
-        </div>
+        )}
 
-      )}
+      </>
 
-    </>
+    );
 
-  );
+  }
+);
 
-}
+
+CartDrawer.displayName =
+  "CartDrawer";
+
+
+export default CartDrawer;

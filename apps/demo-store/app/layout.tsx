@@ -1,16 +1,10 @@
-import {
-  RazeProvider,
-  RazeAssistant,
-  RazeCartProvider,
-} from "@raze/commerce-sdk/react";
-
-
 import type {
   Metadata,
 } from "next";
 
-
 import "./globals.css";
+
+import RazeStoreProvider from "../components/RazeStoreProvider";
 
 
 export const metadata: Metadata = {
@@ -19,13 +13,11 @@ export const metadata: Metadata = {
 };
 
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
 
   return (
 
@@ -33,36 +25,15 @@ export default function RootLayout({
 
       <body>
 
-        <script src="https://checkout.razorpay.com/v1/checkout.js" />
+        <script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+        />
 
+        <RazeStoreProvider>
 
-        <RazeProvider
+          {children}
 
-          merchantId={
-            process.env.NEXT_PUBLIC_RAZE_MERCHANT_ID!
-          }
-
-          apiUrl={
-            process.env.NEXT_PUBLIC_RAZE_API_URL
-          }
-
-        >
-
-
-          <RazeCartProvider>
-
-
-            {children}
-
-
-            <RazeAssistant/>
-
-
-          </RazeCartProvider>
-
-
-        </RazeProvider>
-
+        </RazeStoreProvider>
 
       </body>
 
