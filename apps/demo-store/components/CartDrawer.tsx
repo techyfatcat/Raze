@@ -15,7 +15,6 @@ import {
 
 import type {
   Product,
-  PaymentRequest,
 } from "@raze/commerce-sdk";
 
 import {
@@ -48,8 +47,9 @@ const CartDrawer = forwardRef<CartDrawerRef>(
   function CartDrawer(_, ref) {
 
     const {
-      client,
-    } = useRaze();
+  client,
+  startCheckout,
+} = useRaze();
 
 
     const {
@@ -71,12 +71,6 @@ const CartDrawer = forwardRef<CartDrawerRef>(
       products,
       setProducts,
     ] = useState<Record<string, Product>>({});
-
-
-    const [
-      paymentRequest,
-      setPaymentRequest,
-    ] = useState<PaymentRequest | null>(null);
 
 
     const [
@@ -190,270 +184,49 @@ const CartDrawer = forwardRef<CartDrawerRef>(
 
     async function checkout() {
 
-      if (
-        !items.length ||
-        processingPayment
-      ) {
-        return;
-      }
+  if (
+    !items.length ||
+    processingPayment
+  ) {
+    return;
+  }
 
 
-      try {
+  try {
 
-        setProcessingPayment(true);
+    setProcessingPayment(true);
 
+    setOpen(false);
 
-        const order =
-          await client.createOrder(
-            items
-          );
+    await startCheckout();
 
+  }
 
-        const payment =
-          await client.requestPayment(
+  catch (error) {
 
-            order.order.id,
+    console.error(
+      "Checkout error",
+      error
+    );
 
-            "Order checkout"
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Unable to start checkout"
+    );
 
-          );
+  }
 
+  finally {
 
-        setPaymentRequest(
-          payment
-        );
+    setProcessingPayment(false);
 
-      }
+  }
 
-      catch (error) {
+}
 
-        console.error(
-          "Checkout error",
-          error
-        );
 
-        alert(
-          error instanceof Error
-            ? error.message
-            : "Unable to start checkout"
-        );
-
-      }
-
-      finally {
-
-        setProcessingPayment(false);
-
-      }
-
-    }
-
-
-     useImperativeHandle(
-  ref,
-  () => ({
-    open() {
-      setOpen(true);
-    },
-
-    checkout() {
-      void checkout();
-    },
-  }),
-  [items, processingPayment]
-);
-
-
-
-    /* =====================================================
-       APPROVE PAYMENT + OPEN RAZORPAY
-    ===================================================== */
-
-    async function approvePayment() {
-
-      if (!paymentRequest) {
-        return;
-      }
-
-
-      try {
-
-        setProcessingPayment(true);
-
-
-        /*
-         * First approve the customer authorization.
-         */
-
-        await client.approvePayment(
-          paymentRequest.actionId
-        );
-
-
-        /*
-         * Create Razorpay payment order.
-         */
-
-        const payment =
-          await client.createPayment(
-
-            paymentRequest.orderId,
-
-            paymentRequest.actionId
-
-          );
-
-
-        /*
-         * Razorpay checkout configuration.
-         */
-
-        const options = {
-
-          key:
-            payment.key,
-
-          amount:
-            payment.amount * 100,
-
-          currency:
-            payment.currency,
-
-          name:
-            "Raze Store",
-
-          description:
-            "AI Commerce Payment",
-
-          order_id:
-            payment.providerOrderId,
-
-
-          handler:
-            async function (response: any) {
-
-              try {
-
-                /*
-                 * Verify payment on our server.
-                 */
-
-                await client.verifyPayment({
-
-                  orderId:
-                    payment.orderId,
-
-                  providerOrderId:
-                    response.razorpay_order_id,
-
-                  paymentId:
-                    response.razorpay_payment_id,
-
-                  signature:
-                    response.razorpay_signature,
-
-                });
-
-
-                alert(
-                  "Payment successful 🎉"
-                );
-
-
-                clearCart();
-
-
-                setPaymentRequest(
-                  null
-                );
-
-
-                setOpen(
-                  false
-                );
-
-              }
-
-              catch (error) {
-
-                console.error(
-                  "Verification error",
-                  error
-                );
-
-                alert(
-                  error instanceof Error
-                    ? error.message
-                    : "Payment verification failed"
-                );
-
-              }
-
-            },
-
-
-          theme: {
-
-            color:
-              "#000000",
-
-          },
-
-        };
-
-
-        /*
-         * Razorpay is loaded globally
-         * through layout.tsx.
-         */
-
-        if (
-          typeof window === "undefined" ||
-          !window.Razorpay
-        ) {
-
-          throw new Error(
-            "Razorpay checkout is not loaded"
-          );
-
-        }
-
-
-        const razorpay =
-          new window.Razorpay(
-            options
-          );
-
-
-        razorpay.open();
-
-      }
-
-      catch (error) {
-
-        console.error(
-          "Payment error",
-          error
-        );
-
-        alert(
-          error instanceof Error
-            ? error.message
-            : "Unable to start payment"
-        );
-
-      }
-
-      finally {
-
-        setProcessingPayment(
-          false
-        );
-
-      }
-
-    }
-
+   
 
     /* =====================================================
        RENDER
@@ -1195,248 +968,7 @@ const CartDrawer = forwardRef<CartDrawerRef>(
         )}
 
 
-        {/* =================================================
-            PAYMENT APPROVAL MODAL
-        ================================================= */}
-
-        {paymentRequest && (
-
-          <div
-
-            className="
-              fixed
-              inset-0
-              z-[100]
-              bg-black/40
-              backdrop-blur-sm
-              flex
-              items-center
-              justify-center
-              p-4
-            "
-
-          >
-
-            <div
-
-              className="
-                w-full
-                max-w-md
-                bg-white
-                rounded-3xl
-                shadow-2xl
-                p-7
-              "
-
-            >
-
-              <div
-
-                className="
-                  flex
-                  items-start
-                  justify-between
-                "
-
-              >
-
-                <div>
-
-                  <p
-
-                    className="
-                      text-xs
-                      uppercase
-                      tracking-widest
-                      text-neutral-400
-                    "
-
-                  >
-
-                    Raze AI
-
-                  </p>
-
-
-                  <h2
-
-                    className="
-                      mt-1
-                      text-xl
-                      font-semibold
-                    "
-
-                  >
-
-                    Payment Approval
-
-                  </h2>
-
-                </div>
-
-
-                <button
-
-                  onClick={() =>
-                    setPaymentRequest(
-                      null
-                    )
-                  }
-
-                  disabled={
-                    processingPayment
-                  }
-
-                  className="
-                    h-9
-                    w-9
-                    rounded-full
-                    flex
-                    items-center
-                    justify-center
-                    text-neutral-400
-                    hover:bg-neutral-100
-                    transition
-                  "
-
-                >
-
-                  <X
-                    size={18}
-                  />
-
-                </button>
-
-              </div>
-
-
-              <div
-
-                className="
-                  mt-6
-                  rounded-2xl
-                  bg-neutral-50
-                  p-5
-                "
-
-              >
-
-                <p
-
-                  className="
-                    text-sm
-                    text-neutral-500
-                  "
-
-                >
-
-                  Raze wants your permission
-                  to proceed with this payment.
-
-                </p>
-
-
-                <div
-
-                  className="
-                    mt-4
-                    flex
-                    items-end
-                    justify-between
-                  "
-
-                >
-
-                  <span
-
-                    className="
-                      text-sm
-                      text-neutral-500
-                    "
-
-                  >
-
-                    Amount
-
-                  </span>
-
-
-                  <span
-
-                    className="
-                      text-2xl
-                      font-semibold
-                    "
-
-                  >
-
-                    ₹
-                    {paymentRequest.amount
-                      .toLocaleString("en-IN")
-                    }
-
-                  </span>
-
-                </div>
-
-              </div>
-
-
-              <button
-
-                onClick={
-                  approvePayment
-                }
-
-                disabled={
-                  processingPayment
-                }
-
-                className="
-                  mt-6
-                  w-full
-                  h-12
-                  rounded-full
-                  bg-black
-                  text-white
-                  font-medium
-                  hover:bg-neutral-800
-                  transition
-                  disabled:opacity-50
-                  disabled:cursor-not-allowed
-                "
-
-              >
-
-                {processingPayment
-                  ? "Opening secure checkout..."
-                  : "Approve & Continue"
-                }
-
-              </button>
-
-
-              <p
-
-                className="
-                  mt-4
-                  text-center
-                  text-xs
-                  text-neutral-400
-                "
-
-              >
-
-                You will be redirected to
-                Razorpay's secure checkout.
-
-              </p>
-
-            </div>
-
-          </div>
-
-        )}
+        
 
       </>
 

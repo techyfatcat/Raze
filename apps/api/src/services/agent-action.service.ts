@@ -124,9 +124,7 @@ export async function approvePaymentAction(
     throw new Error("Order is no longer payable");
   }
 
-  // Re-check the amount against the current order.
-  // The amount approved by the customer must equal
-  // the amount that will actually be charged.
+
   if (action.amount !== order.amount) {
     throw new Error(
       "Payment amount changed after approval request"

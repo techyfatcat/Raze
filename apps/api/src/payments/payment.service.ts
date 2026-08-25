@@ -12,12 +12,12 @@ import {
 
 
 
-function getPaymentProvider(){
+function getPaymentProvider() {
 
 
-  if(
+  if (
     process.env.PAYMENT_PROVIDER === "razorpay"
-  ){
+  ) {
 
     return new RazorpayPaymentProvider();
 
@@ -29,27 +29,24 @@ function getPaymentProvider(){
 }
 
 
-
-
-
 export async function createPaymentOrder(
-  orderId:string,
-  agentActionId:string
-){
+  orderId: string,
+  agentActionId: string
+) {
 
 
   const order =
     await prisma.order.findUnique({
 
-      where:{
-        id:orderId,
+      where: {
+        id: orderId,
       },
 
     });
 
 
 
-  if(!order){
+  if (!order) {
 
     throw new Error(
       "Order not found"
@@ -58,39 +55,32 @@ export async function createPaymentOrder(
   }
 
 
-
-
   const provider =
     getPaymentProvider();
 
 
-
-
   const providerOrder =
-  await provider.createOrder({
+    await provider.createOrder({
 
-    amount:
-      order.amount,
+      amount:
+        order.amount,
 
-    currency:
-      order.currency,
+      currency:
+        order.currency,
 
-    receipt:
-      `order_${order.id}`,
+      receipt:
+        `order_${order.id}`,
 
-  });
-
-
-
+    });
 
 
   await prisma.order.update({
 
-    where:{
-      id:orderId,
+    where: {
+      id: orderId,
     },
 
-    data:{
+    data: {
 
       razorpayOrderId:
         providerOrder.providerOrderId,
@@ -100,14 +90,10 @@ export async function createPaymentOrder(
   });
 
 
-
-
-
-
   const payment =
     await prisma.payment.create({
 
-      data:{
+      data: {
 
         orderId,
 
@@ -123,10 +109,6 @@ export async function createPaymentOrder(
       },
 
     });
-
-
-
-
 
 
   return {
@@ -149,6 +131,10 @@ export async function createPaymentOrder(
 
     currency:
       order.currency,
+
+
+    key:
+      process.env.RAZORPAY_KEY_ID ?? null,
 
 
   };

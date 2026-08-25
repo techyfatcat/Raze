@@ -120,10 +120,17 @@ export class RazeClient {
       products?: Product[];
 
       action:
-        | "SHOW_PRODUCTS"
-        | "ADD_TO_CART"
-        | "CHECKOUT"
-        | "NONE";
+  | "SHOW_PRODUCTS"
+  | "ADD_TO_CART"
+  | "REMOVE_FROM_CART"
+  | "UPDATE_CART"
+  | "CLEAR_CART"
+  | "CHECKOUT"
+  | "NONE";
+
+productId?: string;
+
+quantity?: number;
 
     }>(
       "/api/agent/chat",

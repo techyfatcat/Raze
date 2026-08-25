@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 
@@ -34,9 +35,20 @@ type RazeChatResponse = {
   action?:
     | "SHOW_PRODUCTS"
     | "ADD_TO_CART"
+    | "REMOVE_FROM_CART"
+    | "UPDATE_CART"
+    | "CLEAR_CART"
     | "CHECKOUT"
     | "NONE";
+
+  productId?: string;
+
+  quantity?: number;
 };
+
+
+type CheckoutHandler =
+  () => Promise<void>;
 
 
 type RazeContextType = {
@@ -71,6 +83,22 @@ type RazeContextType = {
     actionId: string
   ) =>
     ReturnType<RazeClient["createPayment"]>;
+
+  /*
+   * Shared checkout entry point.
+   *
+   * RazeAssistant registers the actual checkout
+   * implementation here.
+   *
+   * CartDrawer can then trigger the same checkout
+   * flow without implementing its own payment UI.
+   */
+  registerCheckout: (
+    handler: CheckoutHandler
+  ) => () => void;
+
+  startCheckout: () =>
+    Promise<void>;
 
   onAddToCart?: (
     product: Product
@@ -150,15 +178,6 @@ export function RazeProvider({
 }
 
 
-/*
- * ======================================================
- * INTERNAL PROVIDER
- * ======================================================
- *
- * This component is inside RazeCartProvider,
- * so it can safely access the current cart.
- */
-
 function RazeProviderInner({
 
   merchantId,
@@ -213,6 +232,23 @@ function RazeProviderInner({
     ]);
 
 
+  /*
+   * --------------------------------------------------
+   * SHARED CHECKOUT HANDLER
+   * --------------------------------------------------
+   *
+   * RazeAssistant owns the actual checkout flow.
+   *
+   * This ref allows CartDrawer to invoke that same
+   * flow without creating a second payment popup.
+   */
+
+  const checkoutHandlerRef =
+    useRef<CheckoutHandler | null>(
+      null
+    );
+
+
   const value =
     useMemo<RazeContextType>(() => ({
 
@@ -225,15 +261,6 @@ function RazeProviderInner({
 
       },
 
-
-      /*
-       * ------------------------------------------
-       * AI CHAT
-       * ------------------------------------------
-       *
-       * The current cart is automatically sent
-       * to the backend.
-       */
 
       chat: async (
 
@@ -313,6 +340,53 @@ function RazeProviderInner({
           actionId
 
         );
+
+      },
+
+
+      registerCheckout: (
+        handler: CheckoutHandler
+      ) => {
+
+        checkoutHandlerRef.current =
+          handler;
+
+
+        return () => {
+
+          if (
+            checkoutHandlerRef.current ===
+            handler
+          ) {
+
+            checkoutHandlerRef.current =
+              null;
+
+          }
+
+        };
+
+      },
+
+
+      startCheckout: async () => {
+
+        const handler =
+          checkoutHandlerRef.current;
+
+
+        if (!handler) {
+
+          console.warn(
+            "Raze checkout is not ready yet."
+          );
+
+          return;
+
+        }
+
+
+        await handler();
 
       },
 

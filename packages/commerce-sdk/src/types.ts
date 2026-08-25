@@ -25,10 +25,6 @@ export interface RazeConfig {
 
 }
 
-
-
-
-
 export interface Product {
 
   id:string;
@@ -51,10 +47,6 @@ export interface Product {
 
 }
 
-
-
-
-
 export interface CartItem {
 
   productId:string;
@@ -63,42 +55,22 @@ export interface CartItem {
 
 }
 
-
-
-
-
 export type RazeMessage = {
+  role: "user" | "assistant";
 
+  content: string;
 
-  role:
-    | "user"
-    | "assistant";
-
-
-  content:string;
-
-
-  products?:Product[];
-
+  products?: Product[];
 
   action?:
     | "SHOW_PRODUCTS"
     | "ADD_TO_CART"
+    | "REMOVE_FROM_CART"
+    | "UPDATE_CART"
+    | "CLEAR_CART"
     | "CHECKOUT"
     | "NONE";
-
-
-  metadata?:{
-
-    productId?:string;
-
-  };
-
-
 };
-
-
-
 
 
 export interface PaymentRequest {
