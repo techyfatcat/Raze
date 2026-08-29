@@ -136,23 +136,6 @@ export class GeminiProvider
 
         });
 
-
-      /*
-       * Gemini can perform multiple tool calls
-       * for a single user request.
-       *
-       * Example:
-       *
-       * "add headphones to cart"
-       *
-       * searchProducts
-       *       ↓
-       * addToCart
-       *
-       * We therefore keep processing tool calls
-       * until Gemini gives us a final response.
-       */
-
       let searchedProducts: any[] = [];
 
 
@@ -166,13 +149,6 @@ export class GeminiProvider
         const functionCall =
           response.functionCalls?.[0];
 
-
-        /*
-         * ------------------------------------------
-         * NO MORE TOOL CALLS
-         * ------------------------------------------
-         */
-
         if (!functionCall) {
 
           const text =
@@ -182,12 +158,6 @@ export class GeminiProvider
 
 
           if (!text) {
-
-            /*
-             * If we performed a product search but
-             * Gemini returned no text, still give the
-             * frontend a useful response.
-             */
 
             if (
               searchedProducts.length
@@ -212,13 +182,6 @@ export class GeminiProvider
             return fallbackResponse();
 
           }
-
-
-          /*
-           * If the last completed operation was a
-           * product search, return the products to
-           * the frontend.
-           */
 
           if (
             searchedProducts.length
@@ -259,13 +222,6 @@ export class GeminiProvider
           functionCall.args
         );
 
-
-        /*
-         * ------------------------------------------
-         * SEARCH PRODUCTS
-         * ------------------------------------------
-         */
-
         if (
           functionCall.name ===
           "searchProducts"
@@ -304,20 +260,6 @@ export class GeminiProvider
           searchedProducts =
             products;
 
-
-          /*
-           * Send the actual database result back
-           * to Gemini.
-           *
-           * Gemini may now decide to:
-           *
-           * - show the products
-           * - add one to cart
-           * - remove something
-           * - update quantity
-           * - checkout
-           */
-
           response =
             await chat.sendMessage({
 
@@ -345,25 +287,9 @@ export class GeminiProvider
             });
 
 
-          /*
-           * IMPORTANT:
-           *
-           * Do NOT return here.
-           *
-           * Gemini may have another function call,
-           * such as addToCart.
-           */
-
           continue;
 
         }
-
-
-        /*
-         * ------------------------------------------
-         * ADD TO CART
-         * ------------------------------------------
-         */
 
         if (
           functionCall.name ===
@@ -410,12 +336,6 @@ export class GeminiProvider
 
           }
 
-
-          /*
-           * Never trust the product ID from Gemini
-           * without checking the merchant catalog.
-           */
-
           const product =
             await getProductByIdTool({
 
@@ -461,13 +381,6 @@ export class GeminiProvider
           });
 
         }
-
-
-        /*
-         * ------------------------------------------
-         * REMOVE FROM CART
-         * ------------------------------------------
-         */
 
         if (
           functionCall.name ===
@@ -539,12 +452,6 @@ export class GeminiProvider
 
         }
 
-
-        /*
-         * ------------------------------------------
-         * UPDATE CART QUANTITY
-         * ------------------------------------------
-         */
 
         if (
           functionCall.name ===
@@ -632,13 +539,6 @@ export class GeminiProvider
 
         }
 
-
-        /*
-         * ------------------------------------------
-         * CLEAR CART
-         * ------------------------------------------
-         */
-
         if (
           functionCall.name ===
           "clearCart"
@@ -671,13 +571,6 @@ export class GeminiProvider
           });
 
         }
-
-
-        /*
-         * ------------------------------------------
-         * CHECKOUT
-         * ------------------------------------------
-         */
 
         if (
           functionCall.name ===
@@ -712,13 +605,6 @@ export class GeminiProvider
 
         }
 
-
-        /*
-         * ------------------------------------------
-         * UNKNOWN TOOL
-         * ------------------------------------------
-         */
-
         console.warn(
           "Unknown Gemini tool:",
           functionCall.name
@@ -728,13 +614,6 @@ export class GeminiProvider
         return fallbackResponse();
 
       }
-
-
-      /*
-       * Gemini should normally finish before this.
-       * The limit prevents an accidental infinite
-       * tool-call loop.
-       */
 
       console.warn(
         "Gemini exceeded maximum tool-call attempts."

@@ -78,6 +78,19 @@ export class RazeClient {
 
   }
 
+  async getMerchant() {
+  return this.request<{
+    success: boolean;
+    merchant: {
+      id: string;
+      name: string;
+      slug: string;
+      description?: string | null;
+      currency: string;
+    };
+  }>(`/api/merchants/${this.merchantId}`);
+}
+
 
   async getCatalog() {
 

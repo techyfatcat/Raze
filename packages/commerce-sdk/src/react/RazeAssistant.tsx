@@ -143,24 +143,30 @@ function CloseIcon() {
 
 export function RazeAssistant() {
 
-  const {
-  client,
-  onAddToCart,
-  chat,
-  onCheckout,
-  createOrder,
-  requestPayment,
-  approvePayment,
-  createPayment,
-} = useRaze();
+
+  const [merchant, setMerchant] = useState<{
+  name: string;
+  currency: string;
+} | null>(null);
 
   const {
- items: cartItems,
- addItem,
- removeItem,
- updateQuantity,
- clearCart,
-} = useRazeCart();
+    client,
+    onAddToCart,
+    chat,
+    onCheckout,
+    createOrder,
+    requestPayment,
+    approvePayment,
+    createPayment,
+  } = useRaze();
+
+  const {
+    items: cartItems,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+  } = useRazeCart();
 
 
   const [
@@ -280,16 +286,13 @@ export function RazeAssistant() {
 
   function formatMoney(
     amount: number,
-    currency = "INR"
+    currency = merchant?.currency ?? "INR"
   ) {
-    return new Intl.NumberFormat(
-      "en-IN",
-      {
-        style: "currency",
-        currency,
-        maximumFractionDigits: 2,
-      }
-    ).format(amount);
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
   }
 
 
@@ -401,13 +404,13 @@ export function RazeAssistant() {
         payment.amount * 100,
 
       currency:
-        payment.currency ?? "INR",
+        payment.currency ?? merchant?.currency ?? "INR",
 
       order_id:
         payment.providerOrderId,
 
       name:
-        "Raze Store",
+        merchant?.name ?? "Raze",
 
       description:
         "AI Checkout",
@@ -451,7 +454,7 @@ export function RazeAssistant() {
             ]);
 
           }
-          catch(error) {
+          catch (error) {
 
             console.error(
               "Payment verification failed",
@@ -801,7 +804,7 @@ export function RazeAssistant() {
           );
 
         }
-        catch(error) {
+        catch (error) {
 
           console.error(
             "Checkout failed:",
@@ -1025,8 +1028,10 @@ export function RazeAssistant() {
 
                                       <div className="rz-product-price">
 
-                                        {product.currency ?? "₹"}
-                                        {product.price}
+                                        {formatMoney(
+                                          product.price,
+                                          merchant?.currency ?? "INR"
+                                        )}
 
                                       </div>
 
@@ -1247,7 +1252,7 @@ export function RazeAssistant() {
                       <div className="rz-checkout-item-price">
                         {formatMoney(
                           item.price *
-                            item.quantity,
+                          item.quantity,
                           checkout.payment.currency
                         )}
                       </div>

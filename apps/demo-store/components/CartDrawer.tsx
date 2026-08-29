@@ -47,9 +47,9 @@ const CartDrawer = forwardRef<CartDrawerRef>(
   function CartDrawer(_, ref) {
 
     const {
-  client,
-  startCheckout,
-} = useRaze();
+      client,
+      startCheckout,
+    } = useRaze();
 
 
     const {
@@ -81,7 +81,7 @@ const CartDrawer = forwardRef<CartDrawerRef>(
 
 
 
-   
+
     /* =====================================================
        LOAD CART PRODUCTS
     ===================================================== */
@@ -184,49 +184,49 @@ const CartDrawer = forwardRef<CartDrawerRef>(
 
     async function checkout() {
 
-  if (
-    !items.length ||
-    processingPayment
-  ) {
-    return;
-  }
+      if (
+        !items.length ||
+        processingPayment
+      ) {
+        return;
+      }
 
 
-  try {
+      try {
 
-    setProcessingPayment(true);
+        setProcessingPayment(true);
 
-    setOpen(false);
+        setOpen(false);
 
-    await startCheckout();
+        await startCheckout();
 
-  }
+      }
 
-  catch (error) {
+      catch (error) {
 
-    console.error(
-      "Checkout error",
-      error
-    );
+        console.error(
+          "Checkout error",
+          error
+        );
 
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Unable to start checkout"
-    );
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Unable to start checkout"
+        );
 
-  }
+      }
 
-  finally {
+      finally {
 
-    setProcessingPayment(false);
+        setProcessingPayment(false);
 
-  }
+      }
 
-}
+    }
 
 
-   
+
 
     /* =====================================================
        RENDER
@@ -968,7 +968,7 @@ const CartDrawer = forwardRef<CartDrawerRef>(
         )}
 
 
-        
+
 
       </>
 
