@@ -10,17 +10,19 @@ import {
 type Merchant = {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   currency: string;
 };
+
+interface DashboardHeaderProps {
+  merchant?: Merchant;
+  onRefresh: () => void;
+}
 
 export default function DashboardHeader({
   merchant,
   onRefresh,
-}: {
-  merchant?: Merchant;
-  onRefresh: () => void;
-}) {
+}: DashboardHeaderProps) {
   return (
     <header className="flex h-[76px] items-center justify-between border-b border-[#e9e1d7] bg-[#f8f5f0]/90 px-7 backdrop-blur">
       <div className="flex items-center gap-2">
@@ -34,6 +36,7 @@ export default function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Search */}
         <div className="hidden h-10 w-[250px] items-center gap-2 rounded-xl border border-[#e5ddd4] bg-white px-3 md:flex">
           <Search className="h-4 w-4 text-neutral-400" />
 
@@ -47,30 +50,38 @@ export default function DashboardHeader({
           </span>
         </div>
 
+        {/* Refresh */}
         <button
           onClick={onRefresh}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e5ddd4] bg-white text-neutral-500 transition hover:text-neutral-900"
           title="Refresh dashboard"
+          type="button"
         >
           <RefreshCw className="h-4 w-4" />
         </button>
 
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e5ddd4] bg-white">
+        {/* Notifications */}
+        <button
+          type="button"
+          className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e5ddd4] bg-white"
+          aria-label="Notifications"
+        >
           <Bell className="h-4 w-4 text-neutral-600" />
 
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#c36f45]" />
         </button>
 
-        <button className="flex h-10 items-center gap-3 rounded-xl border border-[#e5ddd4] bg-white px-3">
+        {/* Merchant */}
+        <button
+          type="button"
+          className="flex h-10 items-center gap-3 rounded-xl border border-[#e5ddd4] bg-white px-3"
+        >
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#f3e7dc] text-xs font-semibold text-[#8c5738]">
-            {merchant?.name
-              ?.charAt(0)
-              ?.toUpperCase() ?? "M"}
+            {merchant?.name?.charAt(0)?.toUpperCase() ?? "M"}
           </div>
 
           <span className="hidden max-w-[120px] truncate text-sm font-medium sm:block">
-            {merchant?.name ??
-              "Store"}
+            {merchant?.name ?? "Store"}
           </span>
 
           <ChevronDown className="h-4 w-4 text-neutral-400" />
@@ -92,6 +103,7 @@ function Box({
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
+      aria-hidden="true"
     >
       <path d="m21 8-9-5-9 5 9 5 9-5Z" />
       <path d="M3 8v8l9 5 9-5V8" />

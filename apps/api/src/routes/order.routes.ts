@@ -1,7 +1,17 @@
 import { Router } from "express";
-import { createOrder } from "../services/order.service.js";
+
+import {
+  createOrder,
+  getMerchantOrders,
+} from "../services/order.service.js";
 
 const router = Router();
+
+/*
+ * --------------------------------------------------
+ * CREATE ORDER
+ * --------------------------------------------------
+ */
 
 router.post("/", async (req, res) => {
   try {
@@ -47,6 +57,43 @@ router.post("/", async (req, res) => {
         error instanceof Error
           ? error.message
           : "Failed to create order",
+    });
+  }
+});
+
+/*
+ * --------------------------------------------------
+ * GET MERCHANT ORDERS
+ * --------------------------------------------------
+ */
+
+router.get("/:merchantId", async (req, res) => {
+  try {
+    const {
+      merchantId,
+    } = req.params;
+
+    const result =
+      await getMerchantOrders(
+        merchantId
+      );
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error(
+      "Get orders error:",
+      error
+    );
+
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch orders",
     });
   }
 });

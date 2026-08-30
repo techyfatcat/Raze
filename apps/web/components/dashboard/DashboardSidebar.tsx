@@ -1,136 +1,158 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
   Box,
   CreditCard,
-  LayoutDashboard,
   Megaphone,
-  Package,
   Settings,
-  ShoppingBag,
+  ShoppingCart,
   Users,
 } from "lucide-react";
 
-type Merchant = {
-  id: string;
-  name: string;
-  slug: string;
-  currency: string;
-};
+import type { Merchant } from "@/types/merchant";
+
+interface DashboardSidebarProps {
+  merchant?: Merchant;
+}
 
 const navigation = [
   {
     label: "Overview",
-    icon: LayoutDashboard,
-    active: true,
+    href: "/dashboard",
+    icon: BarChart3,
   },
   {
     label: "Orders",
-    icon: ShoppingBag,
+    href: "/orders",
+    icon: ShoppingCart,
   },
   {
     label: "Products",
-    icon: Package,
+    href: "/products",
+    icon: Box,
   },
   {
     label: "Payments",
+    href: "/payments",
     icon: CreditCard,
   },
   {
     label: "AI Agents",
+    href: "/agents",
     icon: Bot,
+    badge: "AI",
   },
   {
     label: "Campaigns",
+    href: "/campaigns",
     icon: Megaphone,
   },
   {
     label: "Customers",
+    href: "/customers",
     icon: Users,
   },
   {
     label: "Analytics",
+    href: "/analytics",
     icon: BarChart3,
   },
   {
     label: "Settings",
+    href: "/settings",
     icon: Settings,
   },
 ];
 
 export default function DashboardSidebar({
   merchant,
-}: {
-  merchant?: Merchant;
-}) {
+}: DashboardSidebarProps) {
+  const pathname = usePathname();
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-[250px] flex-col bg-[#151515] px-4 py-5 text-white">
-      <div className="px-3">
-        <div className="font-serif text-[34px] tracking-[-1.5px] text-[#c98761]">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[250px] flex-col bg-[#151515] text-white">
+      {/* Logo */}
+      <div className="px-8 pt-7">
+        <div className="font-serif text-[32px] font-medium tracking-tight text-[#c77b4b]">
           Raze
         </div>
       </div>
 
+     
 
-      <nav className="mt-7 flex-1 space-y-1">
-        {navigation.map((item) => {
-          const Icon = item.icon;
+      {/* Navigation */}
+      <nav className="mt-7 flex-1 px-[18px]">
+        <div className="space-y-1">
+          {navigation.map((item) => {
+            const Icon = item.icon;
 
-          return (
-            <button
-              key={item.label}
-              className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
-                item.active
-                  ? "bg-white/[0.1] text-white"
-                  : "text-white/55 hover:bg-white/[0.06] hover:text-white"
-              }`}
-            >
-              <Icon
-                className={`h-[18px] w-[18px] ${
-                  item.active
-                    ? "text-[#d18a61]"
-                    : "text-white/50 group-hover:text-white"
+            const active =
+              pathname === item.href ||
+              (item.href !== "/dashboard" &&
+                pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group flex h-12 items-center rounded-xl px-3.5 transition ${
+                  active
+                    ? "bg-[#303030] text-white"
+                    : "text-[#9a9a9a] hover:bg-[#202020] hover:text-white"
                 }`}
-                strokeWidth={1.7}
-              />
+              >
+                <Icon
+                  className={`h-[19px] w-[19px] ${
+                    active
+                      ? "text-[#c77b4b]"
+                      : "text-[#888]"
+                  }`}
+                  strokeWidth={1.8}
+                />
 
-              <span>
-                {item.label}
-              </span>
-
-              {item.label ===
-                "AI Agents" && (
-                <span className="ml-auto rounded-full bg-[#c47c55]/15 px-2 py-0.5 text-[10px] text-[#d99a76]">
-                  AI
+                <span className="ml-3 text-[15px]">
+                  {item.label}
                 </span>
-              )}
-            </button>
-          );
-        })}
+
+                {item.badge && (
+                  <span className="ml-auto rounded-full bg-[#3a2a20] px-2 py-0.5 text-[10px] font-medium text-[#d48a5a]">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      <div className="rounded-2xl border border-[#3b3028] bg-[#211d19] p-4">
-        <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-[#d28b64]" />
+      {/* AI Status */}
+      <div className="px-[18px] pb-5">
+        <div className="rounded-[18px] border border-[#3a2d24] bg-[#1b1917] p-4">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-[#c77b4b]" />
 
-          <p className="text-xs font-medium text-white/80">
-            AI agents are working
+            <p className="text-xs font-semibold text-white">
+              AI agents are working
+            </p>
+          </div>
+
+          <p className="mt-1 text-xs leading-5 text-[#777]">
+            Growing your store automatically.
           </p>
+
+          <Link
+            href="/agents"
+            className="mt-3 flex h-9 items-center justify-center rounded-lg border border-[#38322d] text-xs text-[#bbb] transition hover:bg-[#24211f] hover:text-white"
+          >
+            View activity
+            <span className="ml-2">→</span>
+          </Link>
         </div>
-
-        <p className="mt-1 text-xs text-white/40">
-          Growing your store automatically.
-        </p>
-
-        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 hover:bg-white/5">
-          View activity
-          <span>→</span>
-        </button>
       </div>
-
-    
     </aside>
   );
 }

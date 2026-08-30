@@ -160,3 +160,72 @@ export async function createOrder(input: CreateOrderInput) {
 
   return order;
 }
+
+export async function getMerchantOrders(
+  merchantId: string
+) {
+  if (!merchantId) {
+    throw new Error("merchantId is required");
+  }
+
+  const merchant = await prisma.merchant.findUnique({
+    where: {
+      id: merchantId,
+    },
+    select: {
+      id: true,
+      name: true,
+      currency: true,
+    },
+  });
+
+  if (!merchant) {
+    throw new Error("Merchant not found");
+  }
+
+  const orders = await prisma.order.findMany({
+    where: {
+      merchantId,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      status: true,
+      createdAt: true,
+
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+
+      items: {
+        select: {
+          id: true,
+          quantity: true,
+          price: true,
+
+          product: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    merchant,
+    orders,
+  };
+}
