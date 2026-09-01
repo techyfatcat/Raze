@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   createPaymentOrder,
   verifyPayment,
+  getMerchantPayments,
 } from "../services/payment.service.js";
 
 import {
@@ -279,6 +280,38 @@ router.post("/mock/complete", async (req, res) => {
   }
 
 });
+
+
+router.get(
+  "/merchant/:merchantId",
+  async (req, res) => {
+    try {
+      const payments =
+        await getMerchantPayments(
+          req.params.merchantId
+        );
+
+      return res.json({
+        success: true,
+        count: payments.length,
+        payments,
+      });
+    } catch (error) {
+      console.error(
+        "Get merchant payments error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch payments",
+      });
+    }
+  }
+);
 
 
 

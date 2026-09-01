@@ -10,6 +10,10 @@ import orderRoutes from "./routes/order.routes.js";
 import agentActionRoutes from "./routes/agent-action.routes.js";
 import agentRoutes from "./routes/agent.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import campaignRoutes from "./routes/campaign.routes.js";
+import customerRoutes from "./routes/customer.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 
 const app = express();
 
@@ -51,6 +55,19 @@ app.use(
 app.use(
   "/api/dashboard",
   dashboardRoutes
+);
+app.use("/api/merchants", campaignRoutes);
+app.use(
+  "/api/customers",
+  customerRoutes
+);
+app.use(
+  "/api/analytics",
+  analyticsRoutes
+);
+app.use(
+  "/api/settings",
+  settingsRoutes
 );
 
 export default app;

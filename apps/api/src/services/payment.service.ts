@@ -557,3 +557,42 @@ export async function verifyPayment(
 
 
 }
+
+
+export async function getMerchantPayments(
+  merchantId: string
+) {
+  if (!merchantId) {
+    throw new Error("merchantId is required");
+  }
+
+  return prisma.payment.findMany({
+    where: {
+      order: {
+        merchantId,
+      },
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    include: {
+      order: {
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+
+          customer: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
